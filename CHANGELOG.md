@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/kno-ai/kno-lens/compare/v1.0.0...v1.1.0) (2026-03-14)
+
+
+### Features
+
+* improve summary item click behavior and interaction clarity ([3c27a32](https://github.com/kno-ai/kno-lens/commit/3c27a322a576ccb5047ea27debba9369e40053f6))
+
 ## 1.0.0 (2026-03-14)
 
 ### Features
