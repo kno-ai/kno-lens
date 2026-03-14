@@ -2,6 +2,10 @@
 export interface ItemDetailLine {
   text: string;
   style?: "code" | "added" | "removed" | "error" | "path" | undefined;
+  /** File path for open-in-editor support on detail lines. */
+  filePath?: string | undefined;
+  /** Activity ID for drill-down or diff support on detail lines. */
+  activityId?: string | undefined;
 }
 
 export interface SummaryItem {
@@ -21,6 +25,7 @@ export interface SummaryItem {
 export interface TurnSummaryStats {
   filesCreated: number;
   filesEdited: number;
+  filesDeleted: number;
   filesRead: number;
   commandsRun: number;
   commandsFailed: number;
@@ -33,4 +38,6 @@ export interface TurnSummary {
   prompt: string;
   items: SummaryItem[];
   stats: TurnSummaryStats;
+  /** Last text response from the assistant, truncated for display. */
+  response?: string | undefined;
 }

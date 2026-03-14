@@ -119,9 +119,12 @@ describe("E2E pipeline: basic-session.jsonl", () => {
   it("renders activity items in the expanded turn", () => {
     const container = renderApp(snapshot);
     try {
-      // The latest turn auto-expands, so summary items should be visible
-      const items = container.querySelectorAll(".summary-item");
-      expect(items.length).toBeGreaterThan(0);
+      // The latest turn auto-expands — this turn has only non-edit items,
+      // so they appear in the collapsed "other actions" section
+      const otherToggle = container.querySelector(".turn-other-toggle");
+      expect(otherToggle).not.toBeNull();
+      // The toggle should describe the collapsed items
+      expect(otherToggle!.textContent).toContain("more action");
     } finally {
       cleanup(container);
     }
@@ -200,6 +203,66 @@ describe("E2E pipeline: multi-turn-with-errors.jsonl", () => {
       cleanup(container);
     }
   });
+
+  it("produces 'lines modified' detail for file_edit activities", () => {
+    // Turn 1 has an Edit tool call — the summary should show line count detail
+    const summary = snapshot.summaries[1];
+    expect(summary).toBeDefined();
+    const editItem = summary!.items.find((i) => i.category === "file_edited");
+    expect(editItem).toBeDefined();
+    expect(editItem!.detail).toContain("lines modified");
+    // Edit items should NOT have expandedDetail (shown via View Diff instead)
+    expect(editItem!.expandedDetail).toBeUndefined();
+  });
+
+  it("does not render expandedDetail for file_edit in the DOM", () => {
+    const container = renderApp(snapshot);
+    try {
+      // Turn 1 has the edit — expand it by clicking the header
+      const headers = container.querySelectorAll(".turn-header");
+      // Turns render newest-first, so turn 1 is the last header
+      const turn1Header = headers[headers.length - 1];
+      expect(turn1Header).toBeDefined();
+      (turn1Header as HTMLElement).click();
+
+      // The edit item should not have old/new expanded detail lines
+      const removedLines = container.querySelectorAll(".item-detail__line--removed");
+      const addedLines = container.querySelectorAll(".item-detail__line--added");
+      expect(removedLines.length).toBe(0);
+      expect(addedLines.length).toBe(0);
+    } finally {
+      cleanup(container);
+    }
+  });
+});
+
+describe("E2E pipeline: basic-session.jsonl (response + edit detail)", () => {
+  const events = parseFixture("basic-session.jsonl");
+  const snapshot = buildSnapshot(events);
+
+  it("populates response field in turn summaries", () => {
+    // The basic-session fixture has a text step with the assistant's response
+    const summaryIds = Object.keys(snapshot.summaries);
+    expect(summaryIds.length).toBeGreaterThan(0);
+
+    const summary = snapshot.summaries[Number(summaryIds[0]!)];
+    // The fixture's assistant message ends with a text block
+    expect(summary).toBeDefined();
+    expect(summary!.response).toBeDefined();
+    expect(summary!.response!.length).toBeGreaterThan(0);
+  });
+
+  it("renders response text in the DOM", () => {
+    const container = renderApp(snapshot);
+    try {
+      const response = container.querySelector(".turn-response");
+      expect(response).not.toBeNull();
+      // Should contain part of the assistant response from the fixture
+      expect(response!.textContent).toContain("pool");
+    } finally {
+      cleanup(container);
+    }
+  });
 });
 
 describe("E2E pipeline: mcp-and-progress.jsonl", () => {
@@ -215,12 +278,14 @@ describe("E2E pipeline: mcp-and-progress.jsonl", () => {
     }
   });
 
-  it("renders the search activity from the turn", () => {
+  it("renders the search activity in the other actions section", () => {
     const container = renderApp(snapshot);
     try {
-      const text = container.textContent ?? "";
-      // The search activity should be visible (medium importance, meets threshold)
-      expect(text).toContain("Searching");
+      // The search is a non-edit item, so it's in the collapsed other actions section
+      const otherToggle = container.querySelector(".turn-other-toggle");
+      expect(otherToggle).not.toBeNull();
+      // The toggle should show "more action(s)" label
+      expect(otherToggle!.textContent).toContain("more action");
     } finally {
       cleanup(container);
     }

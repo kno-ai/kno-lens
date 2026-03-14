@@ -35,9 +35,22 @@ const DEFAULT_DEF: CategoryDef = {
  *   - file_write → "file_created" or "file_edited" (based on isNew)
  *   - bash → "bash" or "bash_error" (based on status)
  *
+ * Additionally, some bash commands are further derived into semantic categories
+ * based on command pattern matching:
+ *   - bash with delete command → "file_deleted"
+ *   - bash with install command → "package_install"
+ *   - bash with test command → "test_run"
+ *
  * Unknown/unregistered category strings get DEFAULT_DEF automatically.
  */
 const REGISTRY: Record<string, CategoryDef> = {
+  file_deleted: {
+    icon: "\u2212", // minus sign
+    colorToken: "red",
+    filterGroup: "deletes",
+    defaultImportance: "high",
+    groupLabel: (n) => `Deleted ${n} files`,
+  },
   file_created: {
     icon: "\uff0b", // fullwidth +
     colorToken: "green",
@@ -65,6 +78,20 @@ const REGISTRY: Record<string, CategoryDef> = {
     filterGroup: "commands",
     defaultImportance: "medium",
     groupLabel: (n) => `Ran ${n} commands`,
+  },
+  test_run: {
+    icon: "\u2714", // heavy check mark
+    colorToken: "green",
+    filterGroup: "commands",
+    defaultImportance: "medium",
+    groupLabel: (n) => `Ran ${n} tests`,
+  },
+  package_install: {
+    icon: "\u2913", // downwards arrow to bar
+    colorToken: "blue",
+    filterGroup: "commands",
+    defaultImportance: "medium",
+    groupLabel: (n) => `${n} installs`,
   },
   bash_error: {
     icon: "\u2716", // heavy x

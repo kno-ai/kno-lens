@@ -3,10 +3,11 @@ import { formatDuration, formatTokens } from "../utils.js";
 
 interface SessionHeaderProps {
   session: SessionSnapshot["session"];
+  deletedCount?: number | undefined;
   onFilter?: ((filter: string) => void) | undefined;
 }
 
-export function SessionHeader({ session, onFilter }: SessionHeaderProps) {
+export function SessionHeader({ session, deletedCount, onFilter }: SessionHeaderProps) {
   const { meta, stats } = session;
   const name = meta.slug ?? (meta.id.length > 12 ? meta.id.slice(0, 8) + "…" : meta.id);
 
@@ -20,10 +21,10 @@ export function SessionHeader({ session, onFilter }: SessionHeaderProps) {
       filter: "edits",
     });
   }
-  if (stats.commandsRun > 0) {
+  if (deletedCount != null && deletedCount > 0) {
     activity.push({
-      label: `${stats.commandsRun} cmd${stats.commandsRun === 1 ? "" : "s"}`,
-      filter: "commands",
+      label: `${deletedCount} deleted`,
+      filter: "deletes",
     });
   }
   if (stats.errorCount > 0) {

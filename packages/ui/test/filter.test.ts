@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CATEGORY_FILTERS, SMART_FILTERS, getFilter, turnMatchesCategory } from "../src/filter.js";
+import { CATEGORY_FILTERS, getFilter, turnMatchesCategory } from "../src/filter.js";
 import type { CategoryFilter } from "../src/filter.js";
 import type { TurnSummary } from "@kno-lens/view";
 
@@ -16,6 +16,7 @@ function makeTurnSummary(categories: string[]): TurnSummary {
     stats: {
       filesCreated: 0,
       filesEdited: 0,
+      filesDeleted: 0,
       filesRead: 0,
       commandsRun: 0,
       commandsFailed: 0,
@@ -50,23 +51,24 @@ describe("CATEGORY_FILTERS", () => {
       expect(f.label[0]).toBe(f.label[0]!.toUpperCase());
     }
   });
-});
 
-describe("SMART_FILTERS", () => {
-  it("has expected entries", () => {
-    expect(SMART_FILTERS).toHaveLength(3);
-    const ids = SMART_FILTERS.map((f) => f.id);
-    expect(ids).toContain("smart:deletes");
-    expect(ids).toContain("smart:installs");
-    expect(ids).toContain("smart:tests");
+  it("edits filter includes file_created and file_edited", () => {
+    const editsFilter = getFilter("cat:edits") as CategoryFilter;
+    expect(editsFilter.categories.has("file_created")).toBe(true);
+    expect(editsFilter.categories.has("file_edited")).toBe(true);
   });
 
-  it("all have kind 'smart' and id prefix 'smart:'", () => {
-    for (const f of SMART_FILTERS) {
-      expect(f.kind).toBe("smart");
-      expect(f.id).toMatch(/^smart:/);
-      expect(f.query).toBeTruthy();
-    }
+  it("deletes filter includes file_deleted", () => {
+    const deletesFilter = getFilter("cat:deletes") as CategoryFilter;
+    expect(deletesFilter).toBeDefined();
+    expect(deletesFilter.categories.has("file_deleted")).toBe(true);
+  });
+
+  it("commands filter includes derived categories", () => {
+    const cmdsFilter = getFilter("cat:commands") as CategoryFilter;
+    expect(cmdsFilter.categories.has("bash")).toBe(true);
+    expect(cmdsFilter.categories.has("test_run")).toBe(true);
+    expect(cmdsFilter.categories.has("package_install")).toBe(true);
   });
 });
 
@@ -76,13 +78,6 @@ describe("getFilter", () => {
     expect(f).toBeDefined();
     expect(f!.kind).toBe("category");
     expect(f!.id).toBe("cat:edits");
-  });
-
-  it("finds smart filters by id", () => {
-    const f = getFilter("smart:tests");
-    expect(f).toBeDefined();
-    expect(f!.kind).toBe("smart");
-    expect(f!.id).toBe("smart:tests");
   });
 
   it("returns undefined for unknown id", () => {
@@ -96,6 +91,12 @@ describe("turnMatchesCategory", () => {
   it("returns true when turn has matching items", () => {
     const summary = makeTurnSummary(["file_edited", "bash"]);
     const filter = getFilter("cat:edits") as CategoryFilter;
+    expect(turnMatchesCategory(summary, filter)).toBe(true);
+  });
+
+  it("returns true for file_deleted in deletes filter", () => {
+    const summary = makeTurnSummary(["file_deleted", "bash"]);
+    const filter = getFilter("cat:deletes") as CategoryFilter;
     expect(turnMatchesCategory(summary, filter)).toBe(true);
   });
 

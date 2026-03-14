@@ -67,11 +67,63 @@ describe("summarizeTurn", () => {
   });
 
   it("classifies successful bash as medium importance", () => {
-    const turn = makeTurn([makeActivity("bash", "done")]);
+    const turn = makeTurn([makeActivity("bash", "done", { command: "ls -la" })]);
     const summary = summarizeTurn(turn, config);
 
     expect(summary.items[0]!.importance).toBe("medium");
     expect(summary.items[0]!.category).toBe("bash");
+  });
+
+  it("classifies rm command as file_deleted", () => {
+    const turn = makeTurn([makeActivity("bash", "done", { command: "rm -rf dist" })]);
+    const summary = summarizeTurn(turn, config);
+    expect(summary.items[0]!.category).toBe("file_deleted");
+    expect(summary.items[0]!.importance).toBe("high");
+    expect(summary.stats.filesDeleted).toBe(1);
+  });
+
+  it("classifies git rm as file_deleted", () => {
+    const turn = makeTurn([makeActivity("bash", "done", { command: "git rm src/old.ts" })]);
+    const summary = summarizeTurn(turn, config);
+    expect(summary.items[0]!.category).toBe("file_deleted");
+  });
+
+  it("classifies rimraf as file_deleted", () => {
+    const turn = makeTurn([makeActivity("bash", "done", { command: "rimraf node_modules" })]);
+    const summary = summarizeTurn(turn, config);
+    expect(summary.items[0]!.category).toBe("file_deleted");
+  });
+
+  it("classifies npm test as test_run", () => {
+    const turn = makeTurn([makeActivity("bash", "done", { command: "npm test" })]);
+    const summary = summarizeTurn(turn, config);
+    expect(summary.items[0]!.category).toBe("test_run");
+  });
+
+  it("classifies vitest as test_run", () => {
+    const turn = makeTurn([makeActivity("bash", "done", { command: "vitest run" })]);
+    const summary = summarizeTurn(turn, config);
+    expect(summary.items[0]!.category).toBe("test_run");
+  });
+
+  it("classifies npm install as package_install", () => {
+    const turn = makeTurn([makeActivity("bash", "done", { command: "npm install express" })]);
+    const summary = summarizeTurn(turn, config);
+    expect(summary.items[0]!.category).toBe("package_install");
+  });
+
+  it("does not misclassify npm rm as file_deleted", () => {
+    // npm rm is npm uninstall, not a file delete
+    const turn = makeTurn([makeActivity("bash", "done", { command: "npm rm express" })]);
+    const summary = summarizeTurn(turn, config);
+    expect(summary.items[0]!.category).toBe("bash");
+  });
+
+  it("classifies error bash before checking command patterns", () => {
+    // Errors take precedence over command classification
+    const turn = makeTurn([makeActivity("bash", "error", { command: "npm test", exitCode: 1 })]);
+    const summary = summarizeTurn(turn, config);
+    expect(summary.items[0]!.category).toBe("bash_error");
   });
 
   it("classifies file reads as medium importance", () => {
@@ -144,7 +196,7 @@ describe("summarizeTurn", () => {
     const turn = makeTurn([
       makeActivity("file_read", "done"),
       makeActivity("file_edit", "done"),
-      makeActivity("bash", "done"),
+      makeActivity("bash", "done", { command: "ls -la" }),
     ]);
     const noGroup: SummaryConfig = { ...config, groupConsecutive: false };
     const summary = summarizeTurn(turn, noGroup);
@@ -388,6 +440,21 @@ describe("summarizeTurn", () => {
     expect(summary.items[0]!.activityIds).toContain(a2.id);
   });
 
+  it("generates expandedDetail with file paths when grouping file_read items", () => {
+    const a1 = makeActivity("file_read", "done", { path: "src/a.ts" });
+    const a2 = makeActivity("file_read", "done", { path: "src/b.ts" });
+    const a3 = makeActivity("file_read", "done", { path: "src/c.ts" });
+    const turn = makeTurn([a1, a2, a3]);
+    const summary = summarizeTurn(turn, config);
+
+    expect(summary.items).toHaveLength(1);
+    expect(summary.items[0]!.expandedDetail).toHaveLength(3);
+    expect(summary.items[0]!.expandedDetail![0]!.text).toBe("a.ts");
+    expect(summary.items[0]!.expandedDetail![0]!.filePath).toBe("src/a.ts");
+    expect(summary.items[0]!.expandedDetail![0]!.activityId).toBe(a1.id);
+    expect(summary.items[0]!.expandedDetail![0]!.style).toBe("path");
+  });
+
   // ─── Prompt passthrough ──────────────────────────────────────────
 
   it("includes the prompt in the summary", () => {
@@ -400,7 +467,7 @@ describe("summarizeTurn", () => {
 
   // ─── Expanded detail extraction ───────────────────────────────────
 
-  it("extracts file_edit expanded detail with old/new strings", () => {
+  it("shows line count detail for file_edit instead of expanded detail", () => {
     const turn = makeTurn([
       makeActivity("file_edit", "done", {
         path: "src/app.ts",
@@ -410,10 +477,9 @@ describe("summarizeTurn", () => {
     ]);
     const summary = summarizeTurn(turn, { ...config, groupConsecutive: false });
 
-    expect(summary.items[0]!.expandedDetail).toBeDefined();
-    expect(summary.items[0]!.expandedDetail).toHaveLength(2);
-    expect(summary.items[0]!.expandedDetail![0]).toEqual({ text: "const x = 1", style: "removed" });
-    expect(summary.items[0]!.expandedDetail![1]).toEqual({ text: "const x = 2", style: "added" });
+    // Edit details are now shown via View Diff action, not inline
+    expect(summary.items[0]!.expandedDetail).toBeUndefined();
+    expect(summary.items[0]!.detail).toBe("1 line modified");
   });
 
   it("extracts bash expanded detail with output and exit code", () => {
@@ -445,8 +511,8 @@ describe("summarizeTurn", () => {
 
     const detail = summary.items[0]!.expandedDetail!;
     expect(detail).toHaveLength(3);
-    expect(detail[0]).toEqual({ text: "src/a.ts", style: "path" });
-    expect(detail[2]).toEqual({ text: "src/c.ts", style: "path" });
+    expect(detail[0]).toEqual({ text: "a.ts", style: "path", filePath: "src/a.ts" });
+    expect(detail[2]).toEqual({ text: "c.ts", style: "path", filePath: "src/c.ts" });
   });
 
   it("extracts ask_user expanded detail with question and answer", () => {
@@ -501,17 +567,192 @@ describe("summarizeTurn", () => {
     expect(summary.items[0]!.expandedDetail).toHaveLength(5);
   });
 
-  it("merges expanded detail lines when grouping", () => {
+  it("merges line count details when grouping edits", () => {
     const turn = makeTurn([
       makeActivity("file_edit", "done", { path: "a.ts", oldString: "old-a", newString: "new-a" }),
       makeActivity("file_edit", "done", { path: "b.ts", oldString: "old-b", newString: "new-b" }),
     ]);
     const summary = summarizeTurn(turn, config);
 
-    // Grouped into 1 item, details merged
+    // Grouped into 1 item with expandedDetail for file paths, detail strings merged
     expect(summary.items).toHaveLength(1);
-    const detail = summary.items[0]!.expandedDetail!;
-    expect(detail).toBeDefined();
-    expect(detail.length).toBe(4); // 2 lines per edit × 2 edits
+    expect(summary.items[0]!.detail).toBe("1 line modified, 1 line modified");
+    // expandedDetail should list individual file paths
+    expect(summary.items[0]!.expandedDetail).toHaveLength(2);
+    expect(summary.items[0]!.expandedDetail![0]!.text).toBe("a.ts");
+    expect(summary.items[0]!.expandedDetail![0]!.filePath).toBe("a.ts");
+    expect(summary.items[0]!.expandedDetail![1]!.text).toBe("b.ts");
+    expect(summary.items[0]!.expandedDetail![1]!.filePath).toBe("b.ts");
+  });
+
+  // ─── editLinesSummary edge cases ────────────────────────────────
+
+  it("returns undefined detail when edit has no old or new string", () => {
+    const turn = makeTurn([
+      makeActivity("file_edit", "done", {
+        path: "src/app.ts",
+        oldString: undefined,
+        newString: undefined,
+      }),
+    ]);
+    const summary = summarizeTurn(turn, { ...config, groupConsecutive: false });
+
+    expect(summary.items[0]!.detail).toBeUndefined();
+  });
+
+  it("counts multiline edit strings correctly", () => {
+    const turn = makeTurn([
+      makeActivity("file_edit", "done", {
+        path: "src/app.ts",
+        oldString: "line1\nline2\nline3",
+        newString: "line1\nline2\nline3\nline4\nline5",
+      }),
+    ]);
+    const summary = summarizeTurn(turn, { ...config, groupConsecutive: false });
+
+    expect(summary.items[0]!.detail).toBe("5 lines modified");
+  });
+
+  it("handles edit with only oldString (deletion)", () => {
+    const turn = makeTurn([
+      makeActivity("file_edit", "done", {
+        path: "src/app.ts",
+        oldString: "removed line",
+        newString: undefined,
+      }),
+    ]);
+    const summary = summarizeTurn(turn, { ...config, groupConsecutive: false });
+
+    expect(summary.items[0]!.detail).toBe("1 line modified");
+  });
+
+  it("handles edit with only newString (insertion)", () => {
+    const turn = makeTurn([
+      makeActivity("file_edit", "done", {
+        path: "src/app.ts",
+        oldString: undefined,
+        newString: "new\nlines\nadded",
+      }),
+    ]);
+    const summary = summarizeTurn(turn, { ...config, groupConsecutive: false });
+
+    expect(summary.items[0]!.detail).toBe("3 lines modified");
+  });
+
+  // ─── extractResponse ───────────────────────────────────────────
+
+  it("extracts the last text response from a turn", () => {
+    const turn: Turn = {
+      id: 1,
+      status: "done",
+      prompt: "What is 2+2?",
+      steps: [
+        { kind: "text", text: "Let me think about that.", at: "2025-01-01T00:01:00Z" },
+        {
+          kind: "activity",
+          activity: makeActivity("file_read", "done"),
+        },
+        { kind: "text", text: "The answer is 4.", at: "2025-01-01T00:01:05Z" },
+      ],
+      startedAt: "2025-01-01T00:01:00Z",
+      endedAt: "2025-01-01T00:02:00Z",
+      durationMs: 1000,
+      tokenUsage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
+        models: [],
+      },
+      errorCount: 0,
+    };
+    const summary = summarizeTurn(turn, config);
+
+    // Should return the last text step
+    expect(summary.response).toBe("The answer is 4.");
+  });
+
+  it("returns undefined response when turn has no text steps", () => {
+    const turn = makeTurn([makeActivity("file_edit", "done")]);
+    const summary = summarizeTurn(turn, config);
+
+    expect(summary.response).toBeUndefined();
+  });
+
+  it("skips whitespace-only text steps", () => {
+    const turn: Turn = {
+      id: 1,
+      status: "done",
+      prompt: "Do something",
+      steps: [
+        { kind: "text", text: "Real content here.", at: "2025-01-01T00:01:00Z" },
+        { kind: "text", text: "   \n  \t  ", at: "2025-01-01T00:01:05Z" },
+      ],
+      startedAt: "2025-01-01T00:01:00Z",
+      endedAt: "2025-01-01T00:02:00Z",
+      durationMs: 1000,
+      tokenUsage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
+        models: [],
+      },
+      errorCount: 0,
+    };
+    const summary = summarizeTurn(turn, config);
+
+    expect(summary.response).toBe("Real content here.");
+  });
+
+  it("truncates response longer than 300 characters", () => {
+    const longText = "x".repeat(400);
+    const turn: Turn = {
+      id: 1,
+      status: "done",
+      prompt: "Explain",
+      steps: [{ kind: "text", text: longText, at: "2025-01-01T00:01:00Z" }],
+      startedAt: "2025-01-01T00:01:00Z",
+      endedAt: "2025-01-01T00:02:00Z",
+      durationMs: 1000,
+      tokenUsage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
+        models: [],
+      },
+      errorCount: 0,
+    };
+    const summary = summarizeTurn(turn, config);
+
+    expect(summary.response).toBeDefined();
+    expect(summary.response!.length).toBe(301); // 300 + "…"
+    expect(summary.response!.endsWith("…")).toBe(true);
+  });
+
+  it("does not truncate response at exactly 300 characters", () => {
+    const exactText = "y".repeat(300);
+    const turn: Turn = {
+      id: 1,
+      status: "done",
+      prompt: "Explain",
+      steps: [{ kind: "text", text: exactText, at: "2025-01-01T00:01:00Z" }],
+      startedAt: "2025-01-01T00:01:00Z",
+      endedAt: "2025-01-01T00:02:00Z",
+      durationMs: 1000,
+      tokenUsage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
+        models: [],
+      },
+      errorCount: 0,
+    };
+    const summary = summarizeTurn(turn, config);
+
+    expect(summary.response).toBe(exactText);
+    expect(summary.response!.endsWith("…")).toBe(false);
   });
 });

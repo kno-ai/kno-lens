@@ -72,7 +72,10 @@ describe("knownCategories", () => {
     expect(categories).toContain("ask_user");
     expect(categories).toContain("mcp_call");
     expect(categories).toContain("error");
-    expect(categories).toHaveLength(11);
+    expect(categories).toContain("file_deleted");
+    expect(categories).toContain("test_run");
+    expect(categories).toContain("package_install");
+    expect(categories).toHaveLength(14);
   });
 });
 
@@ -109,7 +112,7 @@ describe("categoriesForGroup", () => {
 
   it("returns correct set for commands group", () => {
     const cats = categoriesForGroup("commands");
-    expect(cats).toEqual(new Set(["bash"]));
+    expect(cats).toEqual(new Set(["bash", "test_run", "package_install"]));
   });
 
   it("returns correct set for agents group", () => {

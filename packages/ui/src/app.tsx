@@ -18,6 +18,7 @@ export interface AppProps {
   config: SummaryConfig;
   onDrillDown?: ((activityId: string) => void) | undefined;
   onOpenFile?: ((path: string) => void) | undefined;
+  onShowDiff?: ((activityId: string) => void) | undefined;
 }
 
 /** Minimal runtime check that a snapshot has the shape we need to render. */
@@ -38,7 +39,7 @@ function isValidSnapshot(s: unknown): s is SessionSnapshot {
 
 const SEARCH_DEBOUNCE_MS = 150;
 
-export function App({ snapshot, live, onDrillDown, onOpenFile }: AppProps) {
+export function App({ snapshot, live, onDrillDown, onOpenFile, onShowDiff }: AppProps) {
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -63,12 +64,10 @@ export function App({ snapshot, live, onDrillDown, onOpenFile }: AppProps) {
     return <div class="empty-state">Invalid session data</div>;
   }
 
-  // Resolve the active filter
-  const activeFilterDef = activeFilterId ? getFilter(activeFilterId) : undefined;
-
-  // Derive the effective category filter and search query
-  const categoryFilter: CategoryFilter | null =
-    activeFilterDef?.kind === "category" ? activeFilterDef : null;
+  // Derive the effective category filter
+  const categoryFilter: CategoryFilter | null = activeFilterId
+    ? ((getFilter(activeFilterId) as CategoryFilter | undefined) ?? null)
+    : null;
 
   const effectiveSearch = debouncedSearch;
 
@@ -76,6 +75,15 @@ export function App({ snapshot, live, onDrillDown, onOpenFile }: AppProps) {
     () => searchSnapshot(snapshot, effectiveSearch),
     [snapshot, effectiveSearch],
   );
+
+  // Derive deleted count from turn summaries
+  const deletedCount = useMemo(() => {
+    let count = 0;
+    for (const summary of Object.values(snapshot.summaries)) {
+      count += summary.stats.filesDeleted;
+    }
+    return count;
+  }, [snapshot.summaries]);
 
   // If the live turn already has a summary, it's completed — don't show it as live.
   // This handles the gap between snapshot updating and the next live state message.
@@ -93,13 +101,6 @@ export function App({ snapshot, live, onDrillDown, onOpenFile }: AppProps) {
 
   const handleFilterChange = useCallback((id: string | null) => {
     setActiveFilterId(id);
-    if (id) {
-      const def = getFilter(id);
-      if (def?.kind === "smart") {
-        setSearchQuery(def.query);
-        return;
-      }
-    }
     setSearchQuery("");
   }, []);
 
@@ -110,19 +111,23 @@ export function App({ snapshot, live, onDrillDown, onOpenFile }: AppProps) {
 
   return (
     <ErrorBoundary>
-      <SessionHeader session={snapshot.session} onFilter={handleHeaderFilter} />
+      <SessionHeader
+        session={snapshot.session}
+        deletedCount={deletedCount}
+        onFilter={handleHeaderFilter}
+      />
       <Toolbar
         activeFilter={activeFilterId}
         onFilterChange={handleFilterChange}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
-        searchHint={activeFilterDef?.kind === "smart" ? activeFilterDef.label : undefined}
       />
       <LiveIndicator live={effectiveLive} />
       <TurnList
         snapshot={snapshot}
         onDrillDown={onDrillDown}
         onOpenFile={onOpenFile}
+        onShowDiff={onShowDiff}
         activeFilter={categoryFilter}
         searchQuery={effectiveSearch.trim() ? effectiveSearch : undefined}
         searchResults={effectiveSearch.trim() ? searchResults : null}
@@ -191,6 +196,13 @@ export function WebviewApp() {
     [vscode],
   );
 
+  const onShowDiff = useCallback(
+    (activityId: string) => {
+      vscode?.postMessage({ type: "show-diff", activityId });
+    },
+    [vscode],
+  );
+
   return (
     <App
       snapshot={snapshot}
@@ -198,6 +210,7 @@ export function WebviewApp() {
       config={config}
       onDrillDown={onDrillDown}
       onOpenFile={onOpenFile}
+      onShowDiff={onShowDiff}
     />
   );
 }

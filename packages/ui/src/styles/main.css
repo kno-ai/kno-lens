@@ -65,6 +65,7 @@ body {
   border-radius: 3px;
   padding: 0 3px;
   margin: -1px -3px;
+  color: var(--vscode-textLink-foreground);
   transition:
     background 0.08s,
     opacity 0.08s;
@@ -162,6 +163,55 @@ body {
   padding: 2px 12px 6px 10px;
 }
 
+.turn-response {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.92em;
+  line-height: 1.4;
+  padding: 4px 0 2px 4px;
+  margin-bottom: 4px;
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* ─── Other actions (collapsed tier) ──────────────────────────── */
+
+.turn-other-actions {
+  margin-top: 2px;
+}
+
+.turn-other-toggle {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.92em;
+  user-select: none;
+  transition: background 0.08s;
+}
+
+.turn-other-toggle:hover {
+  background: var(--vscode-list-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.turn-other-toggle__label {
+  flex-shrink: 0;
+}
+
+.turn-other-toggle__detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  opacity: 0.7;
+}
+
 /* ─── Summary item ────────────────────────────────────────────── */
 
 .summary-item {
@@ -184,6 +234,11 @@ body {
 }
 
 .summary-item--clickable:hover .summary-item__label {
+  text-decoration: underline;
+}
+
+/* Items that open a VS Code tab (file open, diff) */
+.summary-item--link .summary-item__label {
   color: var(--vscode-textLink-foreground);
 }
 
@@ -238,6 +293,30 @@ body {
   padding-left: 8px;
 }
 
+.summary-item__edit-detail,
+.summary-item__diff-link {
+  display: block;
+  margin-left: 22px;
+  font-size: 0.92em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+.summary-item__edit-detail {
+  color: var(--vscode-descriptionForeground);
+}
+
+.summary-item__diff-link {
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+}
+
+.summary-item__diff-link:hover {
+  text-decoration: underline;
+}
+
 .summary-item--low {
   opacity: 0.55;
 }
@@ -249,18 +328,18 @@ body {
 /* ─── Item detail (inline expansion) ─────────────────────────── */
 
 .item-detail {
-  margin: 1px 0 4px 20px;
-  padding: 4px 8px;
-  border-left: 2px solid var(--vscode-textSeparator-foreground);
-  font-size: 0.92em;
-  font-family: var(--vscode-editor-font-family, monospace);
-  line-height: 1.5;
+  margin: 0;
+  padding: 0 4px 0 26px;
+  font-family: var(--vscode-font-family);
+  line-height: 1.4;
 }
 
 .item-detail__line {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 6px;
+  padding: 1px 4px;
+  border-radius: 3px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -298,11 +377,23 @@ body {
 
 .item-detail__line--code {
   color: var(--vscode-descriptionForeground);
+  font-size: 0.92em;
 }
 
 .item-detail__line--path {
   color: var(--vscode-textLink-foreground);
-  opacity: 0.8;
+}
+
+.item-detail__line--clickable {
+  cursor: pointer;
+}
+
+.item-detail__line--clickable:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.item-detail__line--clickable:hover .item-detail__text {
+  text-decoration: underline;
 }
 
 /* ─── Toolbar ─────────────────────────────────────────────────── */
@@ -327,13 +418,6 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.toolbar__search-hint {
-  flex-shrink: 0;
-  font-size: 0.85em;
-  color: var(--vscode-descriptionForeground);
-  opacity: 0.8;
 }
 
 /* Filter dropdown */

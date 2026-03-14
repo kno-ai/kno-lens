@@ -4,6 +4,7 @@ import type { SessionSnapshot, LiveTurnState } from "@kno-lens/view";
 import { DEFAULT_SUMMARY_CONFIG } from "@kno-lens/view";
 import { App } from "../src/app.js";
 import { LiveIndicator } from "../src/components/LiveIndicator.js";
+import { searchSnapshot } from "../src/search.js";
 
 import basicFixture from "../dev/fixtures/basic-session.json";
 import liveFixture from "../dev/fixtures/live-session.json";
@@ -85,13 +86,13 @@ describe("App", () => {
       const meta = header.querySelector(".session-header__meta");
       expect(meta).not.toBeNull();
       expect(meta!.textContent).toContain("fix/connection-pool");
-      expect(meta!.textContent).toContain("3 turns");
+      expect(meta!.textContent).toContain("4 turns");
 
       // Activity stats: edits, cmds, errors
       const activity = header.querySelector(".session-header__activity");
       expect(activity).not.toBeNull();
-      expect(activity!.textContent).toContain("3 edits");
-      expect(activity!.textContent).toContain("8 cmds");
+      expect(activity!.textContent).toContain("6 edits");
+      expect(activity!.textContent).toContain("1 deleted");
       expect(activity!.textContent).toContain("2 errors");
     } finally {
       cleanup(container);
@@ -132,6 +133,126 @@ describe("App", () => {
     } finally {
       cleanup(container);
     }
+  });
+
+  it("passes onShowDiff callback through to TurnList", () => {
+    const onShowDiff = (_activityId: string) => {};
+    const container = renderInto(
+      <App
+        snapshot={basicSnapshot}
+        live={null}
+        config={DEFAULT_SUMMARY_CONFIG}
+        onShowDiff={onShowDiff}
+      />,
+    );
+    try {
+      expect(container.querySelector(".turn-list")).not.toBeNull();
+      const turnItems = container.querySelectorAll(".turn-item");
+      expect(turnItems.length).toBeGreaterThan(0);
+    } finally {
+      cleanup(container);
+    }
+  });
+
+  it("renders response text in expanded turns", () => {
+    const container = renderInto(
+      <App snapshot={basicSnapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
+    );
+    try {
+      // The latest turn auto-expands and the fixture has response text
+      const response = container.querySelector(".turn-response");
+      expect(response).not.toBeNull();
+      expect(response!.textContent!.length).toBeGreaterThan(0);
+    } finally {
+      cleanup(container);
+    }
+  });
+
+  it("renders edit detail as clickable link when onShowDiff is provided", () => {
+    const onShowDiff = (_activityId: string) => {};
+    const container = renderInto(
+      <App
+        snapshot={basicSnapshot}
+        live={null}
+        config={DEFAULT_SUMMARY_CONFIG}
+        onShowDiff={onShowDiff}
+      />,
+    );
+    try {
+      // The fixture has file_edited items with "N lines modified" detail
+      const links = container.querySelectorAll(".summary-item__diff-link");
+      expect(links.length).toBeGreaterThan(0);
+      expect(links[0]!.textContent).toContain("modified");
+    } finally {
+      cleanup(container);
+    }
+  });
+
+  it("renders edit detail as plain text when onShowDiff is not provided", () => {
+    const container = renderInto(
+      <App snapshot={basicSnapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
+    );
+    try {
+      // Without onShowDiff, edit details should not be diff links
+      const links = container.querySelectorAll(".summary-item__diff-link");
+      expect(links.length).toBe(0);
+    } finally {
+      cleanup(container);
+    }
+  });
+
+  it("renders tiered layout: edits separated from other actions", () => {
+    const container = renderInto(
+      <App snapshot={basicSnapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
+    );
+    try {
+      // The latest turn (4) auto-expands and has edits + other actions
+      const turnBody = container.querySelector(".turn-item--expanded .turn-body");
+      expect(turnBody).not.toBeNull();
+
+      // Edit items (file_created, file_edited) should render outside .turn-other-actions
+      const allItems = turnBody!.querySelectorAll(".summary-item");
+      const otherActionsItems = turnBody!.querySelectorAll(".turn-other-actions .summary-item");
+      // Turn 4 has edit items that should be outside the other-actions section
+      const editItemCount = allItems.length - otherActionsItems.length;
+      expect(editItemCount).toBeGreaterThan(0);
+
+      // Other actions should be in a collapsible section
+      const otherToggle = turnBody!.querySelector(".turn-other-toggle");
+      expect(otherToggle).not.toBeNull();
+      expect(otherToggle!.textContent).toContain("more action");
+    } finally {
+      cleanup(container);
+    }
+  });
+
+  it("shows response text before edit items in expanded turn", () => {
+    const container = renderInto(
+      <App snapshot={basicSnapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
+    );
+    try {
+      const turnBody = container.querySelector(".turn-item--expanded .turn-body");
+      expect(turnBody).not.toBeNull();
+      const children = Array.from(turnBody!.children);
+      // First child should be the response
+      expect(children[0]!.classList.contains("turn-response")).toBe(true);
+    } finally {
+      cleanup(container);
+    }
+  });
+
+  it("includes response text in search results", () => {
+    const results = searchSnapshot(basicSnapshot, "health check");
+    // Turn 1 response mentions "health check"
+    expect(results.size).toBeGreaterThan(0);
+    // Check that at least one snippet has source "response"
+    let hasResponseSnippet = false;
+    for (const result of results.values()) {
+      if (result.snippets.some((s: { source: string }) => s.source === "response")) {
+        hasResponseSnippet = true;
+      }
+    }
+    expect(hasResponseSnippet).toBe(true);
   });
 });
 

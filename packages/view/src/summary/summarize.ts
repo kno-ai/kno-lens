@@ -15,6 +15,62 @@ function formatDuration(ms: number): string {
   return `${h}h ${m % 60}m`;
 }
 
+/** Summarize edit as a line count (e.g. "3 lines modified"). */
+function editLinesSummary(
+  oldStr: string | undefined,
+  newStr: string | undefined,
+): string | undefined {
+  if (!oldStr && !newStr) return undefined;
+  const oldLines = oldStr ? oldStr.split("\n").length : 0;
+  const newLines = newStr ? newStr.split("\n").length : 0;
+  const total = Math.max(oldLines, newLines);
+  return `${total} line${total === 1 ? "" : "s"} modified`;
+}
+
+/** Extract the last text response from a completed turn (truncated for display). */
+const MAX_RESPONSE_CHARS = 300;
+
+function extractResponse(turn: Turn): string | undefined {
+  // Walk steps in reverse to find the last text block
+  for (let i = turn.steps.length - 1; i >= 0; i--) {
+    const step = turn.steps[i];
+    if (step && step.kind === "text" && step.text.trim()) {
+      // Collapse multiple newlines and normalize whitespace for display
+      const text = step.text
+        .trim()
+        .replace(/\n{2,}/g, " ")
+        .replace(/\n/g, " ");
+      if (text.length <= MAX_RESPONSE_CHARS) return text;
+      return text.slice(0, MAX_RESPONSE_CHARS) + "…";
+    }
+  }
+  return undefined;
+}
+
+// ─── Bash command classification ─────────────────────────────────────────
+
+/**
+ * Patterns to derive semantic categories from bash commands.
+ * Matched against the command string at word boundaries, accounting for
+ * compound commands (&&, ||, ;, |). Order matters — first match wins.
+ * Errors take precedence (checked before these patterns).
+ */
+const DELETE_PATTERN = /(?:^|[;&|]\s*)(?:rm|git\s+rm|rimraf|unlink|del|erase|Remove-Item|ri)\b/;
+const INSTALL_PATTERN =
+  /(?:^|[;&|]\s*)(?:npm\s+(?:install|i|ci|add)|yarn\s+(?:add|install)|pnpm\s+(?:add|install|i)|pip\s+install|brew\s+install|apt(?:-get)?\s+install|cargo\s+install|go\s+install)\b/;
+const TEST_PATTERN =
+  /(?:^|[;&|]\s*)(?:npm\s+test|npm\s+run\s+test|yarn\s+test|pnpm\s+test|vitest|jest|pytest|cargo\s+test|go\s+test|make\s+test)\b/;
+
+/** Derive a semantic category from a bash command string. Returns null if no pattern matches. */
+function classifyBashCommand(
+  command: string,
+): "file_deleted" | "package_install" | "test_run" | null {
+  if (DELETE_PATTERN.test(command)) return "file_deleted";
+  if (TEST_PATTERN.test(command)) return "test_run";
+  if (INSTALL_PATTERN.test(command)) return "package_install";
+  return null;
+}
+
 // ─── Classification ──────────────────────────────────────────────────────
 
 interface ClassifiedActivity {
@@ -36,12 +92,9 @@ interface ClassifiedActivity {
 /** Extract structured detail lines for inline expansion. */
 function extractDetail(activity: Activity): ItemDetailLine[] | undefined {
   switch (activity.kind) {
-    case "file_edit": {
-      const lines: ItemDetailLine[] = [];
-      if (activity.oldString) lines.push({ text: activity.oldString, style: "removed" });
-      if (activity.newString) lines.push({ text: activity.newString, style: "added" });
-      return lines.length > 0 ? lines : undefined;
-    }
+    case "file_edit":
+      // Edit details are shown via the View Diff action, not inline
+      return undefined;
     case "bash": {
       const lines: ItemDetailLine[] = [];
       if (activity.output) lines.push({ text: activity.output, style: "code" });
@@ -57,7 +110,11 @@ function extractDetail(activity: Activity): ItemDetailLine[] | undefined {
     }
     case "search": {
       if (activity.matchedFiles && activity.matchedFiles.length > 0) {
-        return activity.matchedFiles.slice(0, 5).map((f) => ({ text: f, style: "path" as const }));
+        return activity.matchedFiles.slice(0, 5).map((f) => ({
+          text: f.split("/").pop() ?? f,
+          style: "path" as const,
+          filePath: f,
+        }));
       }
       return undefined;
     }
@@ -104,13 +161,16 @@ function classifyActivity(activity: Activity): ClassifiedActivity {
         importance: getCategoryDef(category).defaultImportance as "high" | "medium" | "low",
       };
     }
-    case "file_edit":
+    case "file_edit": {
+      const editDetail = editLinesSummary(activity.oldString, activity.newString);
       return {
         ...base,
         filePath,
         category: "file_edited",
         importance: getCategoryDef("file_edited").defaultImportance as "high" | "medium" | "low",
+        detail: editDetail,
       };
+    }
     case "bash": {
       if (activity.status === "error") {
         return {
@@ -120,10 +180,12 @@ function classifyActivity(activity: Activity): ClassifiedActivity {
           detail: activity.exitCode != null ? `exit ${activity.exitCode}` : undefined,
         };
       }
+      const derivedCategory = classifyBashCommand(activity.command);
+      const category = derivedCategory ?? "bash";
       return {
         ...base,
-        category: "bash",
-        importance: getCategoryDef("bash").defaultImportance as "high" | "medium" | "low",
+        category,
+        importance: getCategoryDef(category).defaultImportance as "high" | "medium" | "low",
       };
     }
     case "search":
@@ -173,12 +235,40 @@ function higherImportance(
 
 const MAX_GROUPED_DETAIL_LINES = 8;
 
+const FILE_CATEGORIES = new Set(["file_read", "file_edited", "file_created", "file_deleted"]);
+
 function groupConsecutiveItems(items: SummaryItem[]): SummaryItem[] {
   const grouped: SummaryItem[] = [];
 
   for (const item of items) {
     const prev = grouped[grouped.length - 1];
     if (prev && prev.category === item.category) {
+      // For file categories, build expandedDetail from individual file paths
+      // before merging IDs (so we can still reference the first item's ID)
+      if (FILE_CATEGORIES.has(item.category)) {
+        if (!prev.expandedDetail) {
+          // First merge — seed with the previous item's path
+          prev.expandedDetail = [];
+          if (prev.filePath) {
+            prev.expandedDetail.push({
+              text: prev.filePath.split("/").pop() ?? prev.filePath,
+              style: "path" as const,
+              filePath: prev.filePath,
+              activityId: prev.activityIds[0],
+            });
+          }
+        }
+        // Add current item's path
+        if (item.filePath && prev.expandedDetail.length < MAX_GROUPED_DETAIL_LINES) {
+          prev.expandedDetail.push({
+            text: item.filePath.split("/").pop() ?? item.filePath,
+            style: "path" as const,
+            filePath: item.filePath,
+            activityId: item.activityIds[0],
+          });
+        }
+      }
+
       // Merge into the previous group
       prev.activityIds.push(...item.activityIds);
       const count = prev.activityIds.length;
@@ -193,8 +283,8 @@ function groupConsecutiveItems(items: SummaryItem[]): SummaryItem[] {
       } else if (item.detail) {
         prev.detail = item.detail;
       }
-      // Merge expanded detail lines (capped)
-      if (item.expandedDetail) {
+      // Merge expanded detail lines for non-file categories (capped)
+      if (!FILE_CATEGORIES.has(item.category) && item.expandedDetail) {
         if (!prev.expandedDetail) {
           prev.expandedDetail = [...item.expandedDetail];
         } else if (prev.expandedDetail.length < MAX_GROUPED_DETAIL_LINES) {
@@ -221,6 +311,7 @@ function computeStats(classified: ClassifiedActivity[]): TurnSummaryStats {
   const stats: TurnSummaryStats = {
     filesCreated: 0,
     filesEdited: 0,
+    filesDeleted: 0,
     filesRead: 0,
     commandsRun: 0,
     commandsFailed: 0,
@@ -236,10 +327,15 @@ function computeStats(classified: ClassifiedActivity[]): TurnSummaryStats {
       case "file_edited":
         stats.filesEdited++;
         break;
+      case "file_deleted":
+        stats.filesDeleted++;
+        break;
       case "file_read":
         stats.filesRead++;
         break;
       case "bash":
+      case "test_run":
+      case "package_install":
         stats.commandsRun++;
         break;
       case "bash_error":
@@ -328,5 +424,6 @@ export function summarizeTurn(turn: Turn, config: SummaryConfig): TurnSummary {
     prompt: turn.prompt,
     items,
     stats,
+    response: extractResponse(turn),
   };
 }

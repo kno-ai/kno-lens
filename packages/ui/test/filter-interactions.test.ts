@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   CATEGORY_FILTERS,
-  SMART_FILTERS,
   ALL_FILTERS,
   getFilter,
   turnMatchesCategory,
@@ -27,6 +26,7 @@ function makeTurnSummary(
     stats: {
       filesCreated: 0,
       filesEdited: 0,
+      filesDeleted: 0,
       filesRead: 0,
       commandsRun: 0,
       commandsFailed: 0,
@@ -61,15 +61,21 @@ describe("filter groups cover all known categories", () => {
     }
   });
 
-  it("category and smart filters have unique ids", () => {
+  it("all filters have unique ids", () => {
     const ids = ALL_FILTERS.map((f) => f.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("smart filter queries are non-empty and distinct", () => {
-    const queries = SMART_FILTERS.map((f) => f.query);
-    expect(queries.every((q) => q.length > 0)).toBe(true);
-    expect(new Set(queries).size).toBe(queries.length);
+  it("deletes filter includes file_deleted category", () => {
+    const deletesFilter = getFilter("cat:deletes") as CategoryFilter;
+    expect(deletesFilter).toBeDefined();
+    expect(deletesFilter.categories.has("file_deleted")).toBe(true);
+  });
+
+  it("commands filter includes derived test_run and package_install categories", () => {
+    const cmdsFilter = getFilter("cat:commands") as CategoryFilter;
+    expect(cmdsFilter.categories.has("test_run")).toBe(true);
+    expect(cmdsFilter.categories.has("package_install")).toBe(true);
   });
 });
 
@@ -91,6 +97,12 @@ describe("turnMatchesCategory edge cases", () => {
     ]);
     const editFilter = getFilter("cat:edits") as CategoryFilter;
     expect(turnMatchesCategory(summary, editFilter)).toBe(true);
+  });
+
+  it("matches file_deleted in deletes filter", () => {
+    const summary = makeTurnSummary(1, ["file_deleted"]);
+    const deletesFilter = getFilter("cat:deletes") as CategoryFilter;
+    expect(turnMatchesCategory(summary, deletesFilter)).toBe(true);
   });
 });
 
@@ -124,35 +136,23 @@ describe("countMatches", () => {
   });
 });
 
-// ─── Filter/search mutual exclusivity (logic verification) ──────
+// ─── Filter type verification ────────────────────────────────────
 
-describe("filter and search mutual exclusivity", () => {
-  it("smart filters have a query that can be used for search", () => {
-    for (const sf of SMART_FILTERS) {
-      expect(sf.query.length).toBeGreaterThan(0);
-      expect(sf.kind).toBe("smart");
+describe("filter type verification", () => {
+  it("all filters are category filters", () => {
+    for (const f of ALL_FILTERS) {
+      expect(f.kind).toBe("category");
+      expect(f.id.startsWith("cat:")).toBe(true);
     }
   });
 
-  it("category filters are distinct from smart filters", () => {
-    for (const cf of CATEGORY_FILTERS) {
-      expect(cf.kind).toBe("category");
-      expect(cf.id.startsWith("cat:")).toBe(true);
-    }
-    for (const sf of SMART_FILTERS) {
-      expect(sf.kind).toBe("smart");
-      expect(sf.id.startsWith("smart:")).toBe(true);
-    }
-  });
-
-  it("getFilter returns correct types for each prefix", () => {
+  it("getFilter returns category type", () => {
     const cat = getFilter("cat:edits");
     expect(cat?.kind).toBe("category");
+  });
 
-    const smart = getFilter("smart:deletes");
-    expect(smart?.kind).toBe("smart");
-    if (smart?.kind === "smart") {
-      expect(smart.query).toBe("rm ");
-    }
+  it("getFilter returns undefined for unknown prefixes", () => {
+    expect(getFilter("smart:deletes")).toBeUndefined();
+    expect(getFilter("unknown")).toBeUndefined();
   });
 });
