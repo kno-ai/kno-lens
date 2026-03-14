@@ -2,7 +2,7 @@
   "name": "kno-lens",
   "displayName": "KnoLens",
   "description": "Live session viewer for Claude Code",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "kno-ai",
   "license": "MIT",
   "repository": {
