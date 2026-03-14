@@ -302,10 +302,11 @@ The `SessionManager` emits `"update"` events carrying
 
 **Webview → Extension:**
 
-| type           | fields                   | action                                     |
-| -------------- | ------------------------ | ------------------------------------------ |
-| `"open-file"`  | `{ path: string }`       | Open file in editor (workspace-restricted) |
-| `"drill-down"` | `{ activityId: string }` | Future: show raw JSONL record              |
+| type           | fields                   | action                                        |
+| -------------- | ------------------------ | --------------------------------------------- |
+| `"open-file"`  | `{ path: string }`       | Open file in editor (workspace-restricted)    |
+| `"drill-down"` | `{ activityId: string }` | Show raw JSONL record as JSON in editor       |
+| `"show-diff"`  | `{ activityId: string }` | Open old→new edit diff in VS Code diff editor |
 
 ---
 

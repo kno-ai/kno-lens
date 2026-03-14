@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { SessionManager } from "@kno-lens/io";
+import { SessionManager, lookupRecordByUuid } from "@kno-lens/io";
 import type { SessionInfo } from "@kno-lens/io";
 import { getSummaryConfig, getThrottleMs } from "./settings.js";
 
@@ -42,7 +42,10 @@ export class SessionConnector implements vscode.Disposable {
             this.openFile(msg.path);
             break;
           case "drill-down":
-            // Future: look up raw JSONL record by resultRecordUuid
+            this.showRawRecord(msg.activityId);
+            break;
+          case "show-diff":
+            this.showEditDiff(msg.activityId);
             break;
         }
       }),
@@ -83,6 +86,77 @@ export class SessionConnector implements vscode.Disposable {
       d.dispose();
     }
     this.disposables = [];
+  }
+
+  private async showEditDiff(activityId: unknown): Promise<void> {
+    if (typeof activityId !== "string" || activityId.length === 0) return;
+
+    const snapshot = this.manager.state.snapshot;
+    if (!snapshot) return;
+
+    for (const turn of snapshot.session.turns) {
+      for (const step of turn.steps) {
+        if (step.kind !== "activity" || step.activity.id !== activityId) continue;
+        const act = step.activity;
+        if (act.kind !== "file_edit") return;
+
+        const oldStr = act.oldString ?? "";
+        const newStr = act.newString ?? "";
+        const shortPath = act.path.split("/").pop() ?? act.path;
+
+        try {
+          const leftDoc = await vscode.workspace.openTextDocument({ content: oldStr });
+          const rightDoc = await vscode.workspace.openTextDocument({ content: newStr });
+          const leftUri = leftDoc.uri;
+          const rightUri = rightDoc.uri;
+
+          await vscode.commands.executeCommand(
+            "vscode.diff",
+            leftUri,
+            rightUri,
+            `${shortPath} (Turn ${turn.id})`,
+            { preview: true },
+          );
+        } catch {
+          // Fail silently
+        }
+        return;
+      }
+    }
+  }
+
+  private async showRawRecord(activityId: unknown): Promise<void> {
+    if (typeof activityId !== "string" || activityId.length === 0) return;
+
+    // Find the activity in the current snapshot
+    const snapshot = this.manager.state.snapshot;
+    if (!snapshot) return;
+
+    let uuid: string | undefined;
+    for (const turn of snapshot.session.turns) {
+      for (const step of turn.steps) {
+        if (step.kind === "activity" && step.activity.id === activityId) {
+          uuid = step.activity.resultRecordUuid;
+          break;
+        }
+      }
+      if (uuid) break;
+    }
+    if (!uuid) return;
+
+    try {
+      const record = await lookupRecordByUuid(this.sessionInfo.path, uuid);
+      if (!record) return;
+
+      const content = JSON.stringify(record, null, 2);
+      const doc = await vscode.workspace.openTextDocument({
+        content,
+        language: "json",
+      });
+      await vscode.window.showTextDocument(doc, { preview: true });
+    } catch {
+      // File may have been deleted or is unreadable — fail silently
+    }
   }
 
   private openFile(filePath: string): void {

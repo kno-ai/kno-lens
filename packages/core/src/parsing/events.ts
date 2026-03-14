@@ -267,7 +267,7 @@ export interface SessionCoreConfig {
 export const DEFAULT_CONFIG: SessionCoreConfig = {
   bashOutputMaxChars: 120,
   thinkingExcerptMaxChars: 200,
-  editStringMaxChars: 500,
+  editStringMaxChars: 5000,
   agentPromptMaxChars: 200,
   errorMaxChars: 500,
   answerMaxChars: 500,

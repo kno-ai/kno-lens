@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { SessionController } from "../src/controller/SessionController.js";
 import { SUMMARY_ALGORITHM_VERSION } from "../src/controller/snapshot.js";
+import type { SessionEvent } from "@kno-lens/core";
 import {
   sessionStart,
   turnStart,
@@ -280,6 +281,41 @@ describe("SessionController", () => {
     const exported = limited.exportState();
     expect(exported.session.turns).toHaveLength(2);
     expect(Object.keys(exported.summaries)).toHaveLength(2);
+  });
+
+  // ─── response in summary ───────────────────────────────────
+
+  it("includes response text in summary when turn has text steps", () => {
+    ctrl.onEvent(sessionStart());
+    ctrl.onEvent(turnStart(1, "What is 2+2?"));
+    const textEvent: SessionEvent = {
+      type: "text_output",
+      turnId: 1,
+      text: "The answer is 4.",
+      at: "2025-01-01T00:01:05Z",
+    };
+    ctrl.onEvent(textEvent);
+    ctrl.onEvent(turnEnd(1));
+
+    const summary = ctrl.summaries.get(1)!;
+    expect(summary.response).toBe("The answer is 4.");
+  });
+
+  it("response flows through exportState into snapshot summaries", () => {
+    ctrl.onEvent(sessionStart());
+    ctrl.onEvent(turnStart(1, "Explain"));
+    const textEvent: SessionEvent = {
+      type: "text_output",
+      turnId: 1,
+      text: "Here is my explanation.",
+      at: "2025-01-01T00:01:05Z",
+    };
+    ctrl.onEvent(textEvent);
+    ctrl.onEvent(turnEnd(1));
+    ctrl.onEvent(sessionEnd());
+
+    const exported = ctrl.exportState();
+    expect(exported.summaries[1]!.response).toBe("Here is my explanation.");
   });
 
   // ─── Full lifecycle ──────────────────────────────────────────────

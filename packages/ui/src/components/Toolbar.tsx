@@ -1,12 +1,10 @@
-import { CATEGORY_FILTERS, SMART_FILTERS } from "../filter.js";
+import { CATEGORY_FILTERS } from "../filter.js";
 
 interface ToolbarProps {
   activeFilter: string | null;
   onFilterChange: (filter: string | null) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  /** Label shown beside the search input when a smart filter is active. */
-  searchHint?: string | undefined;
 }
 
 export function Toolbar({
@@ -14,7 +12,6 @@ export function Toolbar({
   onFilterChange,
   searchQuery,
   onSearchChange,
-  searchHint,
 }: ToolbarProps) {
   return (
     <div class="toolbar">
@@ -28,24 +25,14 @@ export function Toolbar({
           }}
         >
           <option value="">{"\u25bd"} Filter</option>
-          <optgroup label="By type">
-            {CATEGORY_FILTERS.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.label}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="Smart filters">
-            {SMART_FILTERS.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.label}
-              </option>
-            ))}
-          </optgroup>
+          {CATEGORY_FILTERS.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.label}
+            </option>
+          ))}
         </select>
       </div>
       <div class="toolbar__right">
-        {searchHint && <span class="toolbar__search-hint">{searchHint}:</span>}
         <input
           class="toolbar__search"
           type="text"

@@ -15,7 +15,7 @@ export function itemMatchesSearch(item: SummaryItem, query: string): boolean {
 /** A single match snippet showing why a turn was returned. */
 export interface SearchSnippet {
   /** Where the match was found. */
-  source: "prompt" | "label" | "detail";
+  source: "prompt" | "label" | "detail" | "response";
   /** Text before the match. */
   before: string;
   /** The matched substring. */
@@ -61,6 +61,12 @@ function searchTurn(summary: TurnSummary, query: string): SearchSnippet[] {
   // Search prompt
   const promptSnippet = extractSnippet(summary.prompt, query, "prompt");
   if (promptSnippet) snippets.push(promptSnippet);
+
+  // Search response text
+  if (summary.response) {
+    const responseSnippet = extractSnippet(summary.response, query, "response");
+    if (responseSnippet) snippets.push(responseSnippet);
+  }
 
   // Search item labels and details
   for (const item of summary.items) {

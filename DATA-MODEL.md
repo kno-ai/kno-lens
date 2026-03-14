@@ -218,9 +218,10 @@ complete file diff, or the full search results, the consumer can use
 this UUID to locate the original record in the JSONL file and read the
 untruncated content.
 
-**Current status:** The UUID is captured and stored but no consumer
-implements the lookup yet. The "drill-down" postMessage type exists in
-the protocol as a placeholder for this feature.
+**Drill-down:** When the user clicks an activity in the sidebar, the
+extension uses `lookupRecordByUuid()` (io package) to find the original
+record in the JSONL file and opens it as formatted JSON in a read-only
+editor tab.
 
 ---
 
@@ -238,7 +239,7 @@ consumers never see the full text.
 | -------------------- | ------------- | ------------------ |
 | Bash output          | 120 chars     | Truncated with "…" |
 | Thinking excerpt     | 200 chars     | Truncated with "…" |
-| Edit old/new strings | 500 chars     | Truncated with "…" |
+| Edit old/new strings | 5000 chars    | Truncated with "…" |
 | Agent prompt         | 200 chars     | Truncated with "…" |
 | Error text           | 500 chars     | Truncated with "…" |
 | Ask-user answer      | 500 chars     | Truncated with "…" |

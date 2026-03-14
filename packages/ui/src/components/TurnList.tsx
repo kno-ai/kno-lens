@@ -9,6 +9,7 @@ interface TurnListProps {
   snapshot: SessionSnapshot;
   onDrillDown?: ((activityId: string) => void) | undefined;
   onOpenFile?: ((path: string) => void) | undefined;
+  onShowDiff?: ((activityId: string) => void) | undefined;
   activeFilter?: CategoryFilter | null | undefined;
   searchQuery?: string | undefined;
   searchResults?: Map<number, TurnSearchResult> | null | undefined;
@@ -30,6 +31,7 @@ export function TurnList({
   snapshot,
   onDrillDown,
   onOpenFile,
+  onShowDiff,
   activeFilter,
   searchQuery,
   searchResults,
@@ -131,6 +133,7 @@ export function TurnList({
             onToggle={() => toggle(turn.id)}
             onDrillDown={onDrillDown}
             onOpenFile={onOpenFile}
+            onShowDiff={onShowDiff}
             activeFilter={activeFilter}
             searchQuery={searchQuery}
             searchSnippets={turnResult?.snippets}
