@@ -2,11 +2,30 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  release:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
 
     steps:
@@ -28,7 +47,6 @@ jobs:
         run: |
           cd packages/vscode
           npx @vscode/vsce package --no-dependencies
-          echo "VSIX=$(ls *.vsix)" >> $GITHUB_ENV
 
       # Publish to VS Code marketplace
       - name: Publish to marketplace
@@ -38,9 +56,8 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
-      # Create GitHub release with VSIX attached
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: packages/vscode/*.vsix
-          generate_release_notes: true
+      # Attach VSIX to the GitHub release
+      - name: Upload VSIX to release
+        run: gh release upload ${{ needs.release-please.outputs.tag_name }} packages/vscode/*.vsix
+        env:
+          GH_TOKEN: ${{ github.token }}

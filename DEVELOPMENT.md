@@ -112,6 +112,38 @@ npx @vscode/vsce package --no-dependencies
 
 Install locally to test: `code --install-extension kno-lens-0.1.0.vsix`
 
+## Release to marketplace
+
+Releases are managed by [release-please](https://github.com/googleapis/release-please).
+You don't manually bump versions, write changelogs, or create tags.
+
+**How it works:**
+
+1. Push commits to main using [Conventional Commits](https://www.conventionalcommits.org/):
+   - `feat: add session persistence` → minor bump (0.1.0 → 0.2.0)
+   - `fix: handle empty JSONL files` → patch bump (0.1.0 → 0.1.1)
+   - `feat!: redesign snapshot format` → major bump (0.1.0 → 1.0.0)
+   - `chore:`, `docs:`, `test:` → no release
+
+2. release-please automatically creates/updates a **Release PR** on
+   main that bumps `packages/vscode/package.json` and updates
+   `packages/vscode/CHANGELOG.md`
+
+3. When you're ready to publish, **merge the Release PR**
+
+4. The release workflow automatically: builds → tests → packages
+   VSIX → publishes to marketplace → attaches VSIX to GitHub release
+
+### First-time setup
+
+Before your first release, complete these steps once:
+
+1. Create publisher `kno-ai` at https://marketplace.visualstudio.com/manage
+2. Generate a Personal Access Token in Azure DevOps with scope `Marketplace > Manage`
+3. Add the PAT as a GitHub repository secret named `VSCE_PAT`
+4. Add a 128x128 PNG icon at `packages/vscode/media/icon.png` and
+   add `"icon": "media/icon.png"` to `packages/vscode/package.json`
+
 ## Format
 
 Prettier runs automatically on commit via the pre-commit hook

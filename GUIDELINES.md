@@ -64,6 +64,20 @@ The specific package boundaries, dependency rules, and prohibitions
 are defined in ARCHITECTURE.md. That document is the source of truth —
 do not duplicate its rules here.
 
+### Keeping docs current
+
+When a change introduces a new design decision, alters a data flow,
+adds a contract, or changes a boundary, the relevant documentation
+must be updated in the same change — not as a follow-up task:
+
+- New design decision or tradeoff → update **DECISIONS.md**
+- New or changed package boundary, contract, or prohibition → update **ARCHITECTURE.md**
+- New or changed event type, lifecycle, or growth limit → update **DATA-MODEL.md**
+- New term with a specific meaning → update **GLOSSARY.md**
+
+Documentation and code ship together. A design decision that isn't
+recorded in DECISIONS.md will be lost by the next conversation.
+
 ---
 
 ## Implementation rules
@@ -156,6 +170,9 @@ These rules enforce the product principles above in code.
 - VS Code identifiers use `knoLens` (camelCase)
 - Display name is `KnoLens` (PascalCase)
 - Publisher is `kno-ai` (the organization)
+- Commit messages use [Conventional Commits](https://www.conventionalcommits.org/)
+  (`feat:`, `fix:`, `chore:`, `docs:`, `test:`). release-please uses
+  these to determine version bumps and generate changelogs.
 - Tests use vitest. Run `npm test --workspaces` from repo root.
 - Build before testing — downstream packages depend on upstream build
   output

@@ -25,3 +25,5 @@ must conform to both.
   and discuss before implementing. Never silently break a rule.
 - Keep changes minimal and focused. Don't refactor surrounding code,
   add speculative features, or improve things that weren't asked for.
+- Use Conventional Commits for commit messages: `feat:`, `fix:`,
+  `chore:`, `docs:`, `test:`. These drive automated releases.
