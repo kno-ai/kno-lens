@@ -1,0 +1,9 @@
+# Build output (inherited from root, but explicit for clarity)
+dist/
+
+# OS
+.DS_Store
+
+# Editor
+*.swp
+*.swo

@@ -1,0 +1,287 @@
+{
+  "session": {
+    "meta": {
+      "id": "abc123-def456",
+      "tool": "claude-code",
+      "schemaVersion": "1",
+      "projectPath": "/Users/dev/code/my-project",
+      "projectName": "my-project",
+      "slug": "warm-crimson-eagle",
+      "gitBranch": "fix/connection-pool",
+      "startedAt": "2025-06-15T10:00:00Z",
+      "cliVersion": "1.2.3"
+    },
+    "status": "ended",
+    "endedAt": "2025-06-15T10:15:00Z",
+    "turns": [
+      {
+        "id": 1,
+        "status": "done",
+        "prompt": "Fix the connection pool config so it handles concurrent requests properly",
+        "steps": [],
+        "startedAt": "2025-06-15T10:00:05Z",
+        "endedAt": "2025-06-15T10:05:00Z",
+        "durationMs": 295000,
+        "tokenUsage": {
+          "inputTokens": 15000,
+          "outputTokens": 3200,
+          "cacheReadTokens": 8000,
+          "cacheCreationTokens": 2000,
+          "models": ["claude-sonnet-4-6"]
+        },
+        "errorCount": 1
+      },
+      {
+        "id": 2,
+        "status": "done",
+        "prompt": "Explain the changes you made",
+        "steps": [],
+        "startedAt": "2025-06-15T10:05:30Z",
+        "endedAt": "2025-06-15T10:07:00Z",
+        "durationMs": 90000,
+        "tokenUsage": {
+          "inputTokens": 10000,
+          "outputTokens": 2000,
+          "cacheReadTokens": 15000,
+          "cacheCreationTokens": 0,
+          "models": ["claude-sonnet-4-6"]
+        },
+        "errorCount": 0
+      },
+      {
+        "id": 3,
+        "status": "done",
+        "prompt": "Now run the full test suite and fix any failures",
+        "steps": [],
+        "startedAt": "2025-06-15T10:08:00Z",
+        "endedAt": "2025-06-15T10:14:00Z",
+        "durationMs": 360000,
+        "tokenUsage": {
+          "inputTokens": 18000,
+          "outputTokens": 4500,
+          "cacheReadTokens": 12000,
+          "cacheCreationTokens": 0,
+          "models": ["claude-sonnet-4-6"]
+        },
+        "errorCount": 1
+      }
+    ],
+    "stats": {
+      "totalTurns": 3,
+      "completedTurns": 3,
+      "totalInputTokens": 43000,
+      "totalOutputTokens": 9700,
+      "totalCacheReadTokens": 35000,
+      "totalCacheCreationTokens": 2000,
+      "estimatedCostUsd": 0.52,
+      "activeDurationMs": 745000,
+      "wallClockDurationMs": 900000,
+      "filesRead": [
+        "src/config/database.ts",
+        "src/config/pool.ts",
+        "test/pool.test.ts",
+        "test/integration.test.ts"
+      ],
+      "filesWritten": ["src/config/database.ts", "src/config/health-check.ts", "test/pool.test.ts"],
+      "commandsRun": 8,
+      "errorCount": 2
+    }
+  },
+  "summaries": {
+    "1": {
+      "turnId": 1,
+      "prompt": "Fix the connection pool config so it handles concurrent requests properly",
+      "items": [
+        {
+          "importance": "medium",
+          "category": "file_read",
+          "label": "Read src/config/pool.ts",
+          "activityIds": ["act-0"]
+        },
+        {
+          "importance": "medium",
+          "category": "search",
+          "label": "Searched for 'concurrent orders'",
+          "detail": "1 result",
+          "activityIds": ["act-4"],
+          "expandedDetail": [{ "text": "src/handlers/order.ts", "style": "path" }]
+        },
+        {
+          "importance": "medium",
+          "category": "fetch",
+          "label": "Fetched https://node-postgres.com/apis/pool",
+          "activityIds": ["act-4b"]
+        },
+        {
+          "importance": "high",
+          "category": "file_edited",
+          "label": "Edited src/config/database.ts",
+          "activityIds": ["act-1"],
+          "expandedDetail": [
+            { "text": "max: 10, idleTimeoutMillis: 30000", "style": "removed" },
+            {
+              "text": "max: 50, idleTimeoutMillis: 10000, connectionTimeoutMillis: 5000",
+              "style": "added"
+            }
+          ]
+        },
+        {
+          "importance": "high",
+          "category": "file_created",
+          "label": "Created src/config/health-check.ts",
+          "activityIds": ["act-2"]
+        },
+        {
+          "importance": "medium",
+          "category": "bash",
+          "label": "Ran npm install pg-pool@latest",
+          "activityIds": ["act-4c"],
+          "expandedDetail": [{ "text": "added 2 packages in 3.2s", "style": "code" }]
+        },
+        {
+          "importance": "high",
+          "category": "bash_error",
+          "label": "Ran npm test",
+          "detail": "exit 1",
+          "activityIds": ["act-3"],
+          "expandedDetail": [
+            {
+              "text": "FAIL test/pool.test.ts > connection pool > handles concurrent",
+              "style": "code"
+            },
+            { "text": "exit 1 \u00b7 4.2s", "style": "code" }
+          ]
+        },
+        {
+          "importance": "medium",
+          "category": "bash",
+          "label": "Ran npm test",
+          "activityIds": ["act-5"],
+          "expandedDetail": [{ "text": "Tests: 23 passed, 23 total (2.1s)", "style": "code" }]
+        },
+        {
+          "importance": "low",
+          "category": "mcp_call",
+          "label": "MCP: eslint.lint src/config/database.ts",
+          "activityIds": ["act-5b"]
+        }
+      ],
+      "stats": {
+        "filesCreated": 1,
+        "filesEdited": 1,
+        "filesRead": 1,
+        "commandsRun": 2,
+        "commandsFailed": 1,
+        "searchesRun": 1,
+        "errors": 1
+      }
+    },
+    "2": {
+      "turnId": 2,
+      "prompt": "Explain the changes you made",
+      "items": [],
+      "stats": {
+        "filesCreated": 0,
+        "filesEdited": 0,
+        "filesRead": 0,
+        "commandsRun": 0,
+        "commandsFailed": 0,
+        "searchesRun": 0,
+        "errors": 0
+      }
+    },
+    "3": {
+      "turnId": 3,
+      "prompt": "Now run the full test suite and fix any failures",
+      "items": [
+        {
+          "importance": "medium",
+          "category": "bash",
+          "label": "Ran npm test -- --coverage",
+          "activityIds": ["act-6"],
+          "expandedDetail": [
+            { "text": "Tests: 23 passed, 23 total", "style": "code" },
+            { "text": "Coverage: 87.3% statements", "style": "code" }
+          ]
+        },
+        {
+          "importance": "high",
+          "category": "bash_error",
+          "label": "Ran npm test -- --integration",
+          "detail": "exit 1",
+          "activityIds": ["act-7"],
+          "expandedDetail": [
+            {
+              "text": "FAIL test/integration.test.ts > pool > drains on shutdown",
+              "style": "code"
+            },
+            { "text": "Error: Connection terminated unexpectedly", "style": "error" },
+            { "text": "exit 1 \u00b7 8.5s", "style": "code" }
+          ]
+        },
+        {
+          "importance": "high",
+          "category": "agent",
+          "label": "Agent: investigate integration test failures",
+          "detail": "sub-session-pool-debug",
+          "activityIds": ["act-7b"],
+          "expandedDetail": [
+            { "text": "Explore" },
+            { "text": "Find the root cause of the drain-on-shutdown test failure", "style": "code" }
+          ]
+        },
+        {
+          "importance": "high",
+          "category": "ask_user",
+          "label": "Asked whether to drop legacy pool config",
+          "activityIds": ["act-7c"],
+          "expandedDetail": [
+            {
+              "text": "The legacy pool config in src/config/legacy-pool.ts conflicts with the new connection timeout. Should I remove it?"
+            },
+            { "text": "Yes, remove it", "style": "code" }
+          ]
+        },
+        {
+          "importance": "medium",
+          "category": "file_read",
+          "label": "Read test/integration.test.ts",
+          "activityIds": ["act-8"]
+        },
+        {
+          "importance": "high",
+          "category": "file_edited",
+          "label": "Edited test/pool.test.ts",
+          "activityIds": ["act-9"],
+          "expandedDetail": [
+            { "text": "pool.end()", "style": "removed" },
+            { "text": "await pool.end({ timeout: 5000 })", "style": "added" }
+          ]
+        },
+        {
+          "importance": "medium",
+          "category": "bash",
+          "label": "Ran rm src/config/legacy-pool.ts",
+          "activityIds": ["act-9b"]
+        },
+        {
+          "importance": "medium",
+          "category": "bash",
+          "label": "Ran npm test -- --coverage",
+          "activityIds": ["act-10"],
+          "expandedDetail": [{ "text": "Tests: 31 passed, 31 total (6.3s)", "style": "code" }]
+        }
+      ],
+      "stats": {
+        "filesCreated": 0,
+        "filesEdited": 1,
+        "filesRead": 1,
+        "commandsRun": 3,
+        "commandsFailed": 1,
+        "searchesRun": 0,
+        "errors": 1
+      }
+    }
+  },
+  "summaryConfigVersion": "1.0.0"
+}

@@ -1,0 +1,178 @@
+{
+  "snapshot": {
+    "session": {
+      "meta": {
+        "id": "live-session-789",
+        "tool": "claude-code",
+        "schemaVersion": "1",
+        "projectPath": "/Users/dev/code/api-server",
+        "projectName": "api-server",
+        "slug": "bright-azure-fox",
+        "gitBranch": "main",
+        "startedAt": "2025-06-15T14:00:00Z"
+      },
+      "status": "active",
+      "turns": [
+        {
+          "id": 1,
+          "status": "done",
+          "prompt": "Refactor the auth middleware to use the new token format",
+          "steps": [],
+          "startedAt": "2025-06-15T14:00:05Z",
+          "endedAt": "2025-06-15T14:03:00Z",
+          "durationMs": 175000,
+          "tokenUsage": {
+            "inputTokens": 12000,
+            "outputTokens": 2800,
+            "cacheReadTokens": 5000,
+            "cacheCreationTokens": 3000,
+            "models": ["claude-sonnet-4-6"]
+          },
+          "errorCount": 0
+        },
+        {
+          "id": 2,
+          "status": "active",
+          "prompt": "Now update all the tests to match",
+          "steps": [],
+          "startedAt": "2025-06-15T14:04:00Z",
+          "tokenUsage": {
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "cacheReadTokens": 0,
+            "cacheCreationTokens": 0,
+            "models": []
+          },
+          "errorCount": 0
+        }
+      ],
+      "stats": {
+        "totalTurns": 2,
+        "completedTurns": 1,
+        "totalInputTokens": 12000,
+        "totalOutputTokens": 2800,
+        "totalCacheReadTokens": 5000,
+        "totalCacheCreationTokens": 3000,
+        "estimatedCostUsd": 0.18,
+        "activeDurationMs": 175000,
+        "filesRead": ["src/middleware/auth.ts", "src/types/token.ts"],
+        "filesWritten": ["src/middleware/auth.ts", "src/types/token-v2.ts"],
+        "commandsRun": 3,
+        "errorCount": 0
+      }
+    },
+    "summaries": {
+      "1": {
+        "turnId": 1,
+        "prompt": "Refactor the auth middleware to use the new token format",
+        "items": [
+          {
+            "importance": "medium",
+            "category": "file_read",
+            "label": "Read 2 files",
+            "activityIds": ["act-1", "act-2"]
+          },
+          {
+            "importance": "medium",
+            "category": "search",
+            "label": "Searched for 'TokenPayload'",
+            "detail": "3 results",
+            "activityIds": ["act-2b"],
+            "expandedDetail": [
+              { "text": "src/middleware/auth.ts", "style": "path" },
+              { "text": "src/types/token.ts", "style": "path" },
+              { "text": "test/auth.test.ts", "style": "path" }
+            ]
+          },
+          {
+            "importance": "medium",
+            "category": "fetch",
+            "label": "Fetched https://jwt.io/introduction",
+            "activityIds": ["act-2c"]
+          },
+          {
+            "importance": "high",
+            "category": "file_edited",
+            "label": "Edited src/middleware/auth.ts",
+            "activityIds": ["act-3"],
+            "expandedDetail": [
+              { "text": "jwt.verify(token, SECRET)", "style": "removed" },
+              { "text": "jwt.verify(token, SECRET, { algorithms: ['RS256'] })", "style": "added" }
+            ]
+          },
+          {
+            "importance": "high",
+            "category": "file_created",
+            "label": "Created src/types/token-v2.ts",
+            "activityIds": ["act-3b"]
+          },
+          {
+            "importance": "medium",
+            "category": "bash",
+            "label": "Ran rm src/types/token-legacy.ts",
+            "activityIds": ["act-3c"]
+          },
+          {
+            "importance": "medium",
+            "category": "bash",
+            "label": "Ran npm install jsonwebtoken@latest",
+            "activityIds": ["act-3d"],
+            "expandedDetail": [
+              { "text": "added 1 package, updated 1 package in 2.1s", "style": "code" }
+            ]
+          },
+          {
+            "importance": "medium",
+            "category": "bash",
+            "label": "Ran npm test -- auth",
+            "activityIds": ["act-3e"],
+            "expandedDetail": [{ "text": "Tests: 8 passed, 8 total (1.3s)", "style": "code" }]
+          },
+          {
+            "importance": "low",
+            "category": "mcp_call",
+            "label": "MCP: typescript.diagnostics src/middleware/",
+            "activityIds": ["act-3f"]
+          }
+        ],
+        "stats": {
+          "filesCreated": 1,
+          "filesEdited": 1,
+          "filesRead": 2,
+          "commandsRun": 3,
+          "commandsFailed": 0,
+          "searchesRun": 1,
+          "errors": 0
+        }
+      }
+    },
+    "summaryConfigVersion": "1.0.0"
+  },
+  "live": {
+    "turnId": 2,
+    "prompt": "Now update all the tests to match",
+    "startedAt": "2025-06-15T14:04:00Z",
+    "runningActivities": [
+      {
+        "id": "act-4",
+        "label": "Reading test/auth.test.ts",
+        "kind": "file_read",
+        "startedAt": "2025-06-15T14:04:10Z"
+      },
+      {
+        "id": "act-5",
+        "label": "Searching for 'verifyToken'",
+        "kind": "search",
+        "startedAt": "2025-06-15T14:04:12Z"
+      }
+    ],
+    "completedCount": 3,
+    "errorCount": 0,
+    "lastCompleted": {
+      "id": "act-3",
+      "label": "Edited src/middleware/auth.ts",
+      "kind": "file_edit",
+      "startedAt": "2025-06-15T14:03:50Z"
+    }
+  }
+}

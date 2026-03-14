@@ -1,0 +1,114 @@
+{
+  "name": "kno-lens",
+  "displayName": "KnoLens",
+  "description": "Live session viewer for Claude Code",
+  "version": "0.1.0",
+  "publisher": "kno-ai",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kno-ai/kno-lens.git",
+    "directory": "packages/vscode"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "knoLens",
+          "title": "KnoLens",
+          "icon": "$(eye)"
+        }
+      ]
+    },
+    "views": {
+      "knoLens": [
+        {
+          "type": "webview",
+          "id": "knoLens.sessionView",
+          "name": "Session"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "knoLens.selectSession",
+        "title": "Select Session",
+        "category": "KnoLens",
+        "icon": "$(list-selection)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "knoLens.selectSession",
+          "when": "view == knoLens.sessionView",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "KnoLens",
+      "properties": {
+        "knoLens.summary.defaultMinImportance": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "default": "medium",
+          "description": "Minimum importance level for summary items"
+        },
+        "knoLens.summary.groupConsecutive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Group consecutive items of the same category"
+        },
+        "knoLens.summary.maxVisibleItems": {
+          "type": "number",
+          "default": 15,
+          "description": "Maximum visible summary items per turn"
+        },
+        "knoLens.summary.maxVisibleTurns": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum visible turns"
+        },
+        "knoLens.throttleMs": {
+          "type": "number",
+          "default": 100,
+          "description": "Throttle interval (ms) for live updates"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "npm run build:webview && tsup",
+    "build:webview": "cd ../ui && npx vite build && mkdir -p ../vscode/media && cp dist/webview.js dist/style.css ../vscode/media/",
+    "dev": "tsup --watch",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist media",
+    "package": "npm run build && npx @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@kno-lens/io": "^0.1.0",
+    "@kno-lens/view": "^0.1.0",
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "~5.5.0",
+    "vitest": "^3.0.0"
+  }
+}

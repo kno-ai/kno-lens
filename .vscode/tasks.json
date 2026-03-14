@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-extension",
+      "type": "shell",
+      "command": "npm run build -w @kno-lens/ui && npm run build -w kno-lens",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "watch-extension",
+      "type": "shell",
+      "command": "npx tsup --watch",
+      "options": { "cwd": "${workspaceFolder}/packages/vscode" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "watch-webview",
+      "type": "shell",
+      "command": "npx vite build --watch",
+      "options": { "cwd": "${workspaceFolder}/packages/ui" },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

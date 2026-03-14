@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+packages/vscode/media/
+
+# VS Code extension packaging
+*.vsix
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# Editor
+*.swp
+*.swo
+
+# Internal
+.claude/
+.specs/
