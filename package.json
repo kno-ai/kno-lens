@@ -10,7 +10,7 @@
     "npm": ">=10"
   },
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build -w @kno-lens/core && npm run build -w @kno-lens/view && npm run build -w @kno-lens/io && npm run build -w @kno-lens/ui && npm run build -w kno-lens",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "lint:eslint": "eslint .",
