@@ -267,7 +267,7 @@ function SummaryItemRow({
     if (hasDetail) {
       onToggleExpand?.();
     } else if (canDiffSingle) {
-      onShowDiff!(item.activityIds[0]);
+      onShowDiff!(item.activityIds[0]!);
     } else if (canOpenFile) {
       onOpenFile(item.filePath!);
     }
@@ -307,7 +307,7 @@ function SummaryItemRow({
             title="View Diff"
             onClick={(e) => {
               e.stopPropagation();
-              onShowDiff!(item.activityIds[0]);
+              onShowDiff!(item.activityIds[0]!);
             }}
           >
             {item.detail}
