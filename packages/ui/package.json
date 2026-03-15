@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "dev:live": "tsx dev/server.ts",
-    "build": "vite build",
+    "build": "vite build && BUILD_TARGET=explorer vite build",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",

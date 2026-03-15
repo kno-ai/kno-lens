@@ -3,7 +3,7 @@
  * Imports CSS and renders WebviewApp into #root.
  */
 import { render } from "preact";
-import { WebviewApp } from "./app.js";
+import { LensWebviewApp } from "./lens/LensApp.js";
 import "./styles/main.css";
 
-render(<WebviewApp />, document.getElementById("root")!);
+render(<LensWebviewApp />, document.getElementById("root")!);

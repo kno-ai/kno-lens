@@ -65,6 +65,24 @@ export function turnEnd(
   };
 }
 
+export function thinking(turnId: number, excerpt?: string): SessionEvent & { type: "thinking" } {
+  return {
+    type: "thinking",
+    turnId,
+    excerpt,
+    at: "2025-01-01T00:01:15Z",
+  };
+}
+
+export function textOutput(turnId: number, text: string): SessionEvent & { type: "text_output" } {
+  return {
+    type: "text_output",
+    turnId,
+    text,
+    at: "2025-01-01T00:01:20Z",
+  };
+}
+
 export function sessionEnd(): SessionEvent & { type: "session_end" } {
   return {
     type: "session_end",

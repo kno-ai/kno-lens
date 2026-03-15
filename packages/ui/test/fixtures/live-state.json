@@ -1,0 +1,47 @@
+{
+  "turnId": 2,
+  "prompt": "Now update all the tests to match",
+  "startedAt": "2025-06-15T14:04:00Z",
+  "runningActivities": [
+    {
+      "id": "act-4",
+      "label": "Reading test/auth.test.ts",
+      "kind": "file_read",
+      "startedAt": "2025-06-15T14:04:10Z"
+    },
+    {
+      "id": "act-5",
+      "label": "Searching for 'verifyToken'",
+      "kind": "search",
+      "startedAt": "2025-06-15T14:04:12Z"
+    }
+  ],
+  "completedCount": 3,
+  "errorCount": 0,
+  "activityCounts": { "edits": 1, "commands": 0, "reads": 1, "searches": 1, "other": 0 },
+  "completedActivities": [
+    {
+      "id": "act-1",
+      "label": "Read src/middleware/auth.ts",
+      "kind": "file_read",
+      "status": "done",
+      "filePath": "src/middleware/auth.ts"
+    },
+    { "id": "act-2", "label": "Searched for 'TokenPayload'", "kind": "search", "status": "done" },
+    {
+      "id": "act-3",
+      "label": "Edited src/middleware/auth.ts",
+      "kind": "file_edit",
+      "status": "done",
+      "filePath": "src/middleware/auth.ts"
+    }
+  ],
+  "lastCompleted": {
+    "id": "act-3",
+    "label": "Edited src/middleware/auth.ts",
+    "kind": "file_edit",
+    "startedAt": "2025-06-15T14:03:50Z"
+  },
+  "lastText": null,
+  "isThinking": false
+}

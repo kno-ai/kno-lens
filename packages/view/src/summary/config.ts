@@ -17,6 +17,6 @@ export const DEFAULT_SUMMARY_CONFIG: SummaryConfig = {
   importance: {},
   defaultMinImportance: "medium",
   groupConsecutive: true,
-  maxVisibleItems: 15,
+  maxVisibleItems: 100,
   maxVisibleTurns: 50,
 };

@@ -14,7 +14,7 @@ import type { SessionEvent } from "@kno-lens/core";
 import { SessionController, DEFAULT_SUMMARY_CONFIG } from "@kno-lens/view";
 import type { SessionSnapshot } from "@kno-lens/view";
 
-import { App } from "../src/app.js";
+import { LensApp } from "../src/lens/LensApp.js";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ function buildSnapshot(events: SessionEvent[]): SessionSnapshot {
 function renderApp(snapshot: SessionSnapshot): HTMLDivElement {
   const container = document.createElement("div");
   document.body.appendChild(container);
-  render(<App snapshot={snapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />, container);
+  render(<LensApp snapshot={snapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />, container);
   return container;
 }
 
@@ -119,12 +119,9 @@ describe("E2E pipeline: basic-session.jsonl", () => {
   it("renders activity items in the expanded turn", () => {
     const container = renderApp(snapshot);
     try {
-      // The latest turn auto-expands — this turn has only non-edit items,
-      // so they appear in the collapsed "other actions" section
-      const otherToggle = container.querySelector(".turn-other-toggle");
-      expect(otherToggle).not.toBeNull();
-      // The toggle should describe the collapsed items
-      expect(otherToggle!.textContent).toContain("more action");
+      // The latest turn auto-expands — activity items render via shared TurnDetail
+      const items = container.querySelectorAll(".turn-detail__item");
+      expect(items.length).toBeGreaterThan(0);
     } finally {
       cleanup(container);
     }
@@ -185,10 +182,10 @@ describe("E2E pipeline: multi-turn-with-errors.jsonl", () => {
   it("shows error stats in the header", () => {
     const container = renderApp(snapshot);
     try {
-      const activity = container.querySelector(".session-header__activity");
-      expect(activity).not.toBeNull();
+      const meta = container.querySelector(".session-header__meta");
+      expect(meta).not.toBeNull();
       // Should show error count from the failed bash command
-      expect(activity!.textContent).toContain("error");
+      expect(meta!.textContent).toContain("error");
     } finally {
       cleanup(container);
     }
@@ -255,7 +252,7 @@ describe("E2E pipeline: basic-session.jsonl (response + edit detail)", () => {
   it("renders response text in the DOM", () => {
     const container = renderApp(snapshot);
     try {
-      const response = container.querySelector(".turn-response");
+      const response = container.querySelector(".turn-detail__response");
       expect(response).not.toBeNull();
       // Should contain part of the assistant response from the fixture
       expect(response!.textContent).toContain("pool");
@@ -278,14 +275,12 @@ describe("E2E pipeline: mcp-and-progress.jsonl", () => {
     }
   });
 
-  it("renders the search activity in the other actions section", () => {
+  it("renders activity items in the expanded turn", () => {
     const container = renderApp(snapshot);
     try {
-      // The search is a non-edit item, so it's in the collapsed other actions section
-      const otherToggle = container.querySelector(".turn-other-toggle");
-      expect(otherToggle).not.toBeNull();
-      // The toggle should show "more action(s)" label
-      expect(otherToggle!.textContent).toContain("more action");
+      // The search activity renders via shared TurnDetail
+      const items = container.querySelectorAll(".turn-detail__item");
+      expect(items.length).toBeGreaterThan(0);
     } finally {
       cleanup(container);
     }

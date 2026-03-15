@@ -1,0 +1,88 @@
+{
+  "session": {
+    "meta": {
+      "id": "test-live-001",
+      "tool": "claude-code",
+      "schemaVersion": "1",
+      "projectPath": "/test/project",
+      "projectName": "test-project",
+      "slug": "bright-azure-fox",
+      "gitBranch": "main",
+      "startedAt": "2025-06-15T14:00:00Z"
+    },
+    "status": "active",
+    "turns": [
+      {
+        "id": 1,
+        "status": "done",
+        "prompt": "Refactor the auth middleware",
+        "steps": [],
+        "startedAt": "2025-06-15T14:00:05Z",
+        "endedAt": "2025-06-15T14:03:00Z",
+        "durationMs": 175000,
+        "tokenUsage": {
+          "inputTokens": 12000,
+          "outputTokens": 2800,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0
+        },
+        "errorCount": 0
+      },
+      {
+        "id": 2,
+        "status": "active",
+        "prompt": "Now update all the tests to match",
+        "steps": [],
+        "startedAt": "2025-06-15T14:04:00Z",
+        "tokenUsage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0
+        },
+        "errorCount": 0
+      }
+    ],
+    "stats": {
+      "totalTurns": 2,
+      "completedTurns": 1,
+      "totalInputTokens": 12000,
+      "totalOutputTokens": 2800,
+      "totalCacheReadTokens": 0,
+      "totalCacheCreationTokens": 0,
+      "estimatedCostUsd": 0.18,
+      "activeDurationMs": 175000,
+      "filesRead": [],
+      "filesWritten": ["src/middleware/auth.ts"],
+      "commandsRun": 3,
+      "errorCount": 0
+    }
+  },
+  "summaries": {
+    "1": {
+      "turnId": 1,
+      "prompt": "Refactor the auth middleware",
+      "response": "Refactored auth middleware to use new token format.",
+      "items": [
+        {
+          "importance": "high",
+          "category": "file_edited",
+          "label": "Edited src/middleware/auth.ts",
+          "activityIds": ["act-3"],
+          "filePath": "src/middleware/auth.ts"
+        }
+      ],
+      "stats": {
+        "filesCreated": 0,
+        "filesEdited": 1,
+        "filesDeleted": 0,
+        "filesRead": 2,
+        "commandsRun": 3,
+        "commandsFailed": 0,
+        "searchesRun": 1,
+        "errors": 0
+      }
+    }
+  },
+  "summaryConfigVersion": "1.0.0"
+}

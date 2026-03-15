@@ -243,11 +243,10 @@ function groupConsecutiveItems(items: SummaryItem[]): SummaryItem[] {
   for (const item of items) {
     const prev = grouped[grouped.length - 1];
     if (prev && prev.category === item.category) {
-      // For file categories, build expandedDetail from individual file paths
-      // before merging IDs (so we can still reference the first item's ID)
+      // For file categories, build expandedDetail from individual file paths.
+      // Deduplicate: if the same file appears again, don't add a second entry.
       if (FILE_CATEGORIES.has(item.category)) {
         if (!prev.expandedDetail) {
-          // First merge — seed with the previous item's path
           prev.expandedDetail = [];
           if (prev.filePath) {
             prev.expandedDetail.push({
@@ -258,14 +257,16 @@ function groupConsecutiveItems(items: SummaryItem[]): SummaryItem[] {
             });
           }
         }
-        // Add current item's path
         if (item.filePath && prev.expandedDetail.length < MAX_GROUPED_DETAIL_LINES) {
-          prev.expandedDetail.push({
-            text: item.filePath.split("/").pop() ?? item.filePath,
-            style: "path" as const,
-            filePath: item.filePath,
-            activityId: item.activityIds[0],
-          });
+          const alreadyListed = prev.expandedDetail.some((d) => d.filePath === item.filePath);
+          if (!alreadyListed) {
+            prev.expandedDetail.push({
+              text: item.filePath.split("/").pop() ?? item.filePath,
+              style: "path" as const,
+              filePath: item.filePath,
+              activityId: item.activityIds[0],
+            });
+          }
         }
       }
 

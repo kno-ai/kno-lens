@@ -6,7 +6,12 @@ export { SUMMARY_ALGORITHM_VERSION } from "./controller/snapshot.js";
 // Live
 export { LiveTurnModel } from "./live/LiveTurnModel.js";
 export { activityLabel } from "./live/labels.js";
-export type { LiveTurnState, LiveActivity } from "./live/types.js";
+export type {
+  LiveTurnState,
+  LiveActivity,
+  LiveActivityCounts,
+  CompletedLiveActivity,
+} from "./live/types.js";
 
 // Summary
 export { summarizeTurn } from "./summary/summarize.js";

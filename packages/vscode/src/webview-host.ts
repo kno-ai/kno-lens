@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   const mediaUri = vscode.Uri.joinPath(extensionUri, "media");
   const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, "webview.js"));
-  const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, "style.css"));
+  const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, "webview.css"));
   const nonce = randomUUID();
 
   return `<!DOCTYPE html>

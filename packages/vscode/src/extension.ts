@@ -4,12 +4,13 @@ import type { SessionInfo } from "@kno-lens/io";
 import { getWebviewHtml } from "./webview-host.js";
 import { SessionConnector } from "./session-connector.js";
 import { pickSession } from "./session-picker.js";
+import { PanelManager } from "./panel-manager.js";
 
 const log = vscode.window.createOutputChannel("KnoLens", { log: true });
 
 // ─── Sidebar WebviewViewProvider ─────────────────────────────────────────
 
-class LensViewProvider implements vscode.WebviewViewProvider {
+class ViewProvider implements vscode.WebviewViewProvider {
   static readonly viewType = "knoLens.sessionView";
 
   private view: vscode.WebviewView | undefined;
@@ -17,9 +18,11 @@ class LensViewProvider implements vscode.WebviewViewProvider {
   private extensionUri: vscode.Uri;
   private pollTimer: ReturnType<typeof setInterval> | undefined;
   private connecting = false;
+  readonly explorer: PanelManager;
 
   constructor(extensionUri: vscode.Uri) {
     this.extensionUri = extensionUri;
+    this.explorer = new PanelManager(extensionUri);
   }
 
   resolveWebviewView(
@@ -58,7 +61,7 @@ class LensViewProvider implements vscode.WebviewViewProvider {
     log.info(`Connecting to session: ${sessionInfo.sessionId}`);
     log.info(`  File: ${sessionInfo.path}`);
 
-    this.connector = new SessionConnector(sessionInfo, this.view.webview);
+    this.connector = new SessionConnector(sessionInfo, this.view.webview, this.explorer);
     await this.connector.start();
 
     this.view.title = `Session — ${sessionInfo.sessionId.slice(0, 8)}…`;
@@ -150,10 +153,10 @@ export function activate(context: vscode.ExtensionContext): void {
     `Workspace folders: ${JSON.stringify(vscode.workspace.workspaceFolders?.map((f) => f.uri.toString()))}`,
   );
 
-  const provider = new LensViewProvider(context.extensionUri);
+  const provider = new ViewProvider(context.extensionUri);
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(LensViewProvider.viewType, provider, {
+    vscode.window.registerWebviewViewProvider(ViewProvider.viewType, provider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
@@ -163,6 +166,24 @@ export function activate(context: vscode.ExtensionContext): void {
       provider.selectSession();
     }),
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("knoLens.openExplorer", () => {
+      provider.explorer.open();
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "knoLens.openExplorerForFile",
+      (uri: vscode.Uri | undefined) => {
+        const filePath = uri?.fsPath ?? vscode.window.activeTextEditor?.document.uri.fsPath;
+        provider.explorer.open(filePath ? { fileFilter: filePath } : undefined);
+      },
+    ),
+  );
+
+  context.subscriptions.push(provider.explorer);
 
   log.info("KnoLens activated");
 }

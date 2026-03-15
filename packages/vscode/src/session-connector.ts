@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { SessionManager, lookupRecordByUuid } from "@kno-lens/io";
 import type { SessionInfo } from "@kno-lens/io";
 import { getSummaryConfig, getThrottleMs } from "./settings.js";
+import type { PanelManager } from "./panel-manager.js";
 
 /**
  * Bridges a SessionManager to a webview, posting state updates
@@ -10,23 +11,28 @@ import { getSummaryConfig, getThrottleMs } from "./settings.js";
 export class SessionConnector implements vscode.Disposable {
   private manager: SessionManager;
   private disposables: vscode.Disposable[] = [];
+  private explorer: PanelManager | undefined;
 
   readonly sessionInfo: SessionInfo;
 
-  constructor(sessionInfo: SessionInfo, webview: vscode.Webview) {
+  constructor(sessionInfo: SessionInfo, webview: vscode.Webview, explorer?: PanelManager) {
     this.sessionInfo = sessionInfo;
+    this.explorer = explorer;
 
     this.manager = new SessionManager(sessionInfo, {
       summaryConfig: getSummaryConfig(),
       throttleMs: getThrottleMs(),
     });
 
-    // Manager → Webview
+    // Manager → Webview (sidebar)
     this.manager.on("update", (state) => {
       if (state.snapshot) {
         webview.postMessage({ type: "snapshot", data: state.snapshot });
       }
       webview.postMessage({ type: "live", data: state.live });
+
+      // Keep Explorer's cached state current for refresh
+      this.explorer?.postState(state);
     });
 
     this.manager.on("error", (err) => {
@@ -47,9 +53,34 @@ export class SessionConnector implements vscode.Disposable {
           case "show-diff":
             this.showEditDiff(msg.activityId);
             break;
+          case "open-explorer":
+            this.explorer?.open(
+              typeof msg.turnId === "number" ? { turnId: msg.turnId } : undefined,
+            );
+            break;
         }
       }),
     );
+
+    // Explorer Webview → Extension (via PanelManager.onMessage)
+    if (this.explorer) {
+      this.explorer.onMessage((msg) => {
+        switch (msg.type) {
+          case "open-file":
+            this.openFile(msg.path as string);
+            break;
+          case "drill-down":
+            this.showRawRecord(msg.activityId);
+            break;
+          case "show-diff":
+            this.showEditDiff(msg.activityId);
+            break;
+          case "open-in-lens":
+            webview.postMessage({ type: "scroll-to-turn", turnId: msg.turnId });
+            break;
+        }
+      });
+    }
 
     // Re-send config on settings change
     this.disposables.push(

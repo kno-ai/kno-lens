@@ -88,12 +88,12 @@ describe("getWebviewHtml", () => {
     expect(html).toMatch(/src="[^"]*webview\.js"/);
   });
 
-  it("references style.css from media folder", () => {
+  it("references webview.css from media folder", () => {
     const webview = createMockWebview();
     const html = getWebviewHtml(webview as any, Uri.file("/ext"));
 
-    expect(html).toContain("style.css");
-    expect(html).toMatch(/href="[^"]*style\.css"/);
+    expect(html).toContain("webview.css");
+    expect(html).toMatch(/href="[^"]*webview\.css"/);
   });
 
   it("has a #root div for the app mount point", () => {

@@ -6,6 +6,8 @@ import {
   makeActivity,
   activityStart,
   activityEnd,
+  thinking,
+  textOutput,
   resetCounters,
 } from "./helpers.js";
 
@@ -116,5 +118,104 @@ describe("LiveTurnModel", () => {
     expect(model.current.completedCount).toBe(1);
     expect(model.current.lastCompleted).toBeNull();
     expect(model.current.runningActivities).toHaveLength(0);
+  });
+
+  // ─── Thinking state ──────────────────────────────────────────
+
+  it("sets isThinking on thinking event", () => {
+    model.update(turnStart(1));
+    expect(model.current.isThinking).toBe(false);
+
+    model.update(thinking(1));
+    expect(model.current.isThinking).toBe(true);
+  });
+
+  it("clears isThinking on activity_start", () => {
+    model.update(turnStart(1));
+    model.update(thinking(1));
+    expect(model.current.isThinking).toBe(true);
+
+    const act = makeActivity("file_read");
+    model.update(activityStart(1, act));
+    expect(model.current.isThinking).toBe(false);
+  });
+
+  it("clears isThinking on text_output", () => {
+    model.update(turnStart(1));
+    model.update(thinking(1));
+    expect(model.current.isThinking).toBe(true);
+
+    model.update(textOutput(1, "Here's what I found..."));
+    expect(model.current.isThinking).toBe(false);
+  });
+
+  it("resets isThinking on turn_end", () => {
+    model.update(turnStart(1));
+    model.update(thinking(1));
+    model.update(turnEnd(1));
+    expect(model.current.isThinking).toBe(false);
+  });
+
+  // ─── Per-category activity counts ─────────────────────────────
+
+  it("tracks per-category counts for edits", () => {
+    model.update(turnStart(1));
+    const edit = makeActivity("file_edit");
+    model.update(activityStart(1, edit));
+    model.update(activityEnd(1, edit));
+
+    expect(model.current.activityCounts.edits).toBe(1);
+    expect(model.current.activityCounts.commands).toBe(0);
+  });
+
+  it("tracks per-category counts for commands", () => {
+    model.update(turnStart(1));
+    const cmd = makeActivity("bash");
+    model.update(activityStart(1, cmd));
+    model.update(activityEnd(1, cmd));
+
+    expect(model.current.activityCounts.commands).toBe(1);
+  });
+
+  it("tracks per-category counts for reads and searches", () => {
+    model.update(turnStart(1));
+    const read = makeActivity("file_read");
+    const search = makeActivity("search");
+    model.update(activityStart(1, read));
+    model.update(activityEnd(1, read));
+    model.update(activityStart(1, search));
+    model.update(activityEnd(1, search));
+
+    expect(model.current.activityCounts.reads).toBe(1);
+    expect(model.current.activityCounts.searches).toBe(1);
+  });
+
+  it("classifies file_write as edit", () => {
+    model.update(turnStart(1));
+    const write = makeActivity("file_write");
+    model.update(activityStart(1, write));
+    model.update(activityEnd(1, write));
+
+    expect(model.current.activityCounts.edits).toBe(1);
+  });
+
+  it("classifies unknown kinds as other", () => {
+    model.update(turnStart(1));
+    const mcp = makeActivity("mcp_call");
+    model.update(activityStart(1, mcp));
+    model.update(activityEnd(1, mcp));
+
+    expect(model.current.activityCounts.other).toBe(1);
+  });
+
+  it("resets per-category counts on new turn", () => {
+    model.update(turnStart(1));
+    const edit = makeActivity("file_edit");
+    model.update(activityStart(1, edit));
+    model.update(activityEnd(1, edit));
+    model.update(turnEnd(1));
+    model.update(turnStart(2));
+
+    expect(model.current.activityCounts.edits).toBe(0);
   });
 });

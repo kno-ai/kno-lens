@@ -1,0 +1,279 @@
+{
+  "session": {
+    "meta": {
+      "id": "test-session-001",
+      "tool": "claude-code",
+      "schemaVersion": "1",
+      "projectPath": "/test/project",
+      "projectName": "test-project",
+      "slug": "warm-crimson-eagle",
+      "gitBranch": "fix/connection-pool",
+      "startedAt": "2025-06-15T10:00:00Z"
+    },
+    "status": "ended",
+    "endedAt": "2025-06-15T10:15:00Z",
+    "turns": [
+      {
+        "id": 1,
+        "status": "done",
+        "prompt": "Fix the connection pool config",
+        "steps": [],
+        "startedAt": "2025-06-15T10:00:05Z",
+        "endedAt": "2025-06-15T10:05:00Z",
+        "durationMs": 295000,
+        "tokenUsage": {
+          "inputTokens": 15000,
+          "outputTokens": 3200,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0
+        },
+        "errorCount": 1
+      },
+      {
+        "id": 2,
+        "status": "done",
+        "prompt": "Explain the changes",
+        "steps": [],
+        "startedAt": "2025-06-15T10:05:30Z",
+        "endedAt": "2025-06-15T10:07:00Z",
+        "durationMs": 90000,
+        "tokenUsage": {
+          "inputTokens": 10000,
+          "outputTokens": 2000,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0
+        },
+        "errorCount": 0
+      },
+      {
+        "id": 3,
+        "status": "done",
+        "prompt": "Run tests and fix failures",
+        "steps": [],
+        "startedAt": "2025-06-15T10:08:00Z",
+        "endedAt": "2025-06-15T10:14:00Z",
+        "durationMs": 360000,
+        "tokenUsage": {
+          "inputTokens": 18000,
+          "outputTokens": 4500,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0
+        },
+        "errorCount": 1
+      },
+      {
+        "id": 4,
+        "status": "done",
+        "prompt": "Refactor pool module to factory pattern",
+        "steps": [],
+        "startedAt": "2025-06-15T10:14:30Z",
+        "endedAt": "2025-06-15T10:19:00Z",
+        "durationMs": 270000,
+        "tokenUsage": {
+          "inputTokens": 20000,
+          "outputTokens": 5000,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0
+        },
+        "errorCount": 0
+      }
+    ],
+    "stats": {
+      "totalTurns": 4,
+      "completedTurns": 4,
+      "totalInputTokens": 63000,
+      "totalOutputTokens": 14700,
+      "totalCacheReadTokens": 0,
+      "totalCacheCreationTokens": 0,
+      "estimatedCostUsd": 0.78,
+      "activeDurationMs": 1015000,
+      "filesRead": ["src/config/pool.ts"],
+      "filesWritten": [
+        "src/config/database.ts",
+        "src/config/health-check.ts",
+        "test/pool.test.ts",
+        "src/config/pool-factory.ts",
+        "src/routes/health.ts",
+        "src/config/pool.ts"
+      ],
+      "commandsRun": 12,
+      "errorCount": 2
+    }
+  },
+  "summaries": {
+    "1": {
+      "turnId": 1,
+      "prompt": "Fix the connection pool config",
+      "response": "Updated the connection pool to handle concurrent requests.",
+      "items": [
+        {
+          "importance": "high",
+          "category": "file_edited",
+          "label": "Edited src/config/database.ts",
+          "detail": "12 lines modified",
+          "activityIds": ["act-1"],
+          "filePath": "src/config/database.ts"
+        },
+        {
+          "importance": "high",
+          "category": "file_created",
+          "label": "Created src/config/health-check.ts",
+          "activityIds": ["act-2"],
+          "filePath": "src/config/health-check.ts"
+        },
+        {
+          "importance": "high",
+          "category": "bash_error",
+          "label": "Ran npm test",
+          "detail": "exit 1",
+          "activityIds": ["act-3"]
+        },
+        {
+          "importance": "medium",
+          "category": "search",
+          "label": "Searched for 'concurrent'",
+          "detail": "1 result",
+          "activityIds": ["act-4"]
+        },
+        {
+          "importance": "medium",
+          "category": "test_run",
+          "label": "Ran npm test",
+          "activityIds": ["act-5"]
+        }
+      ],
+      "stats": {
+        "filesCreated": 1,
+        "filesEdited": 1,
+        "filesDeleted": 0,
+        "filesRead": 1,
+        "commandsRun": 2,
+        "commandsFailed": 1,
+        "searchesRun": 1,
+        "errors": 1
+      }
+    },
+    "2": {
+      "turnId": 2,
+      "prompt": "Explain the changes",
+      "response": "Three key changes to fix pool exhaustion.",
+      "items": [],
+      "stats": {
+        "filesCreated": 0,
+        "filesEdited": 0,
+        "filesDeleted": 0,
+        "filesRead": 0,
+        "commandsRun": 0,
+        "commandsFailed": 0,
+        "searchesRun": 0,
+        "errors": 0
+      }
+    },
+    "3": {
+      "turnId": 3,
+      "prompt": "Run tests and fix failures",
+      "response": "All 31 tests passing with 87.3% coverage.",
+      "items": [
+        {
+          "importance": "high",
+          "category": "file_edited",
+          "label": "Edited test/pool.test.ts",
+          "detail": "5 lines modified",
+          "activityIds": ["act-9"],
+          "filePath": "test/pool.test.ts"
+        },
+        {
+          "importance": "high",
+          "category": "file_deleted",
+          "label": "Deleted src/config/legacy-pool.ts",
+          "activityIds": ["act-9b"]
+        },
+        {
+          "importance": "high",
+          "category": "bash_error",
+          "label": "Ran npm test -- --integration",
+          "detail": "exit 1",
+          "activityIds": ["act-7"]
+        },
+        {
+          "importance": "medium",
+          "category": "test_run",
+          "label": "Ran npm test -- --coverage",
+          "activityIds": ["act-10"]
+        }
+      ],
+      "stats": {
+        "filesCreated": 0,
+        "filesEdited": 1,
+        "filesDeleted": 1,
+        "filesRead": 1,
+        "commandsRun": 2,
+        "commandsFailed": 1,
+        "searchesRun": 0,
+        "errors": 1
+      }
+    },
+    "4": {
+      "turnId": 4,
+      "prompt": "Refactor pool module to factory pattern",
+      "response": "Refactored pool into factory pattern. All 35 tests pass.",
+      "items": [
+        {
+          "importance": "high",
+          "category": "file_created",
+          "label": "Created src/config/pool-factory.ts",
+          "activityIds": ["act-14"],
+          "filePath": "src/config/pool-factory.ts"
+        },
+        {
+          "importance": "high",
+          "category": "file_edited",
+          "label": "Edited src/routes/health.ts",
+          "detail": "18 lines modified",
+          "activityIds": ["act-15"],
+          "filePath": "src/routes/health.ts"
+        },
+        {
+          "importance": "high",
+          "category": "file_edited",
+          "label": "Edited src/config/pool.ts",
+          "detail": "24 lines modified",
+          "activityIds": ["act-16"],
+          "filePath": "src/config/pool.ts"
+        },
+        {
+          "importance": "high",
+          "category": "file_edited",
+          "label": "Edited test/pool.test.ts",
+          "detail": "31 lines modified",
+          "activityIds": ["act-17"],
+          "filePath": "test/pool.test.ts"
+        },
+        {
+          "importance": "medium",
+          "category": "search",
+          "label": "Searched for 'import.*pool'",
+          "detail": "4 results",
+          "activityIds": ["act-18"]
+        },
+        {
+          "importance": "medium",
+          "category": "test_run",
+          "label": "Ran npm test -- --coverage",
+          "activityIds": ["act-21"]
+        }
+      ],
+      "stats": {
+        "filesCreated": 1,
+        "filesEdited": 3,
+        "filesDeleted": 0,
+        "filesRead": 3,
+        "commandsRun": 1,
+        "commandsFailed": 0,
+        "searchesRun": 1,
+        "errors": 0
+      }
+    }
+  },
+  "summaryConfigVersion": "1.0.0"
+}

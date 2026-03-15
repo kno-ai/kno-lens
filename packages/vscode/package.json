@@ -27,7 +27,7 @@
         {
           "id": "knoLens",
           "title": "KnoLens",
-          "icon": "$(eye)"
+          "icon": "media/kno-icon.svg"
         }
       ]
     },
@@ -46,6 +46,28 @@
         "title": "Select Session",
         "category": "KnoLens",
         "icon": "$(list-selection)"
+      },
+      {
+        "command": "knoLens.openExplorer",
+        "title": "Open Explorer",
+        "category": "KnoLens",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "knoLens.openExplorerForFile",
+        "title": "Show file history in KnoLens Explorer",
+        "category": "KnoLens"
+      },
+      {
+        "command": "knoLens.refreshExplorer",
+        "title": "Refresh Explorer",
+        "category": "KnoLens",
+        "icon": "$(refresh)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "knoLens.openExplorer"
       }
     ],
     "menus": {
@@ -53,6 +75,23 @@
         {
           "command": "knoLens.selectSession",
           "when": "view == knoLens.sessionView",
+          "group": "navigation"
+        },
+        {
+          "command": "knoLens.openExplorer",
+          "when": "view == knoLens.sessionView",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "knoLens.openExplorerForFile",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "knoLens.openExplorerForFile",
           "group": "navigation"
         }
       ]
@@ -95,7 +134,7 @@
   },
   "scripts": {
     "build": "npm run build:webview && tsup",
-    "build:webview": "cd ../ui && npx vite build && mkdir -p ../vscode/media && cp dist/webview.js dist/style.css ../vscode/media/",
+    "build:webview": "cd ../ui && npm run build && mkdir -p ../vscode/media && cp dist/webview.js dist/webview.css dist/explorer.js dist/explorer.css ../vscode/media/",
     "dev": "tsup --watch",
     "lint": "tsc --noEmit",
     "test": "vitest run",

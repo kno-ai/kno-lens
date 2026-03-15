@@ -2,6 +2,7 @@ import { createServer } from "vite";
 import preact from "@preact/preset-vite";
 import { WebSocketServer, WebSocket } from "ws";
 import { SessionManager } from "@kno-lens/io";
+import type { SessionInfo } from "@kno-lens/io";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
@@ -35,8 +36,6 @@ function parseArgs(): { workspace: string } {
   }
 
   if (!workspace) {
-    // Prefer the git repo root — Claude Code registers sessions there,
-    // not in subdirectories like packages/ui where npm runs scripts.
     workspace = gitRepoRoot() ?? process.cwd();
   }
 
@@ -60,44 +59,11 @@ async function main() {
 
   console.log(`  Found ${all.length} session(s), ${active.length} active\n`);
 
-  // Pick the session: prefer active, fall back to most recent
-  const session = active.length > 0 ? active[0]! : all[0]!;
-  const isActive = active.includes(session);
+  // ─── Session management ──────────────────────────────────────────
 
-  console.log(
-    `  ${isActive ? "Tailing active" : "Loading most recent"} session: ${session.sessionId}`,
-  );
-  console.log(`  File: ${session.path}\n`);
-
-  // ─── WebSocket server ──────────────────────────────────────────────
-
-  const wss = new WebSocketServer({ port: WS_PORT });
   const clients = new Set<WebSocket>();
-
-  wss.on("connection", (ws) => {
-    clients.add(ws);
-    console.log(`  [ws] Client connected (${clients.size} total)`);
-
-    // Send current state immediately
-    const state = manager.state;
-    if (state.snapshot) {
-      ws.send(JSON.stringify({ type: "snapshot", data: state.snapshot }));
-    }
-    if (state.live) {
-      ws.send(JSON.stringify({ type: "live", data: state.live }));
-    }
-    ws.send(
-      JSON.stringify({
-        type: "session-info",
-        data: `${session.sessionId.slice(0, 8)}… ${isActive ? "(active)" : "(ended)"}`,
-      }),
-    );
-
-    ws.on("close", () => {
-      clients.delete(ws);
-      console.log(`  [ws] Client disconnected (${clients.size} total)`);
-    });
-  });
+  let manager: SessionManager | null = null;
+  let currentSessionId: string | null = null;
 
   function broadcast(msg: object) {
     const data = JSON.stringify(msg);
@@ -108,26 +74,108 @@ async function main() {
     }
   }
 
-  // ─── Session manager ──────────────────────────────────────────────
+  function sessionList() {
+    return all.map((s) => ({
+      sessionId: s.sessionId,
+      isActive: active.includes(s),
+      modifiedAt: s.modifiedAt.toISOString(),
+      sizeBytes: s.sizeBytes,
+    }));
+  }
 
-  const manager = new SessionManager(session, { throttleMs: 100 });
+  async function connectToSession(session: SessionInfo) {
+    if (manager) {
+      manager.stop();
+      manager = null;
+    }
 
-  manager.on("update", (state) => {
+    const isActive = active.includes(session);
+    currentSessionId = session.sessionId;
+    console.log(`  [session] ${isActive ? "Tailing" : "Loading"}: ${session.sessionId}`);
+
+    manager = new SessionManager(session, { throttleMs: 100 });
+
+    manager.on("update", (state) => {
+      if (state.snapshot) {
+        broadcast({ type: "snapshot", data: state.snapshot });
+      }
+      broadcast({ type: "live", data: state.live });
+    });
+
+    manager.on("error", (err) => {
+      console.error(`  [session] Error: ${err.message}`);
+    });
+
+    manager.on("session-end", () => {
+      console.log("  [session] Session ended");
+    });
+
+    await manager.start();
+
+    broadcast({
+      type: "session-info",
+      data: { sessionId: session.sessionId, isActive },
+    });
+
+    const state = manager.state;
     if (state.snapshot) {
       broadcast({ type: "snapshot", data: state.snapshot });
     }
     broadcast({ type: "live", data: state.live });
+  }
+
+  // ─── WebSocket server ──────────────────────────────────────────────
+
+  const wss = new WebSocketServer({ port: WS_PORT });
+
+  wss.on("connection", (ws) => {
+    clients.add(ws);
+
+    // Send session list + current state
+    ws.send(JSON.stringify({ type: "sessions", data: sessionList() }));
+    ws.send(
+      JSON.stringify({
+        type: "session-info",
+        data: {
+          sessionId: currentSessionId,
+          isActive: active.some((s) => s.sessionId === currentSessionId),
+        },
+      }),
+    );
+
+    if (manager) {
+      const state = manager.state;
+      if (state.snapshot) {
+        ws.send(JSON.stringify({ type: "snapshot", data: state.snapshot }));
+      }
+      ws.send(JSON.stringify({ type: "live", data: state.live }));
+    }
+
+    // Handle client messages
+    ws.on("message", (raw) => {
+      try {
+        const msg = JSON.parse(raw.toString());
+        if (msg.type === "select-session" && typeof msg.sessionId === "string") {
+          const target = all.find((s) => s.sessionId === msg.sessionId);
+          if (target) {
+            connectToSession(target).catch((err) => {
+              console.error(`  [session] Failed to switch: ${err.message}`);
+            });
+          }
+        }
+      } catch {
+        // ignore
+      }
+    });
+
+    ws.on("close", () => {
+      clients.delete(ws);
+    });
   });
 
-  manager.on("error", (err) => {
-    console.error(`  [session] Error: ${err.message}`);
-  });
-
-  manager.on("session-end", () => {
-    console.log("  [session] Session ended");
-  });
-
-  await manager.start();
+  // Connect to the best session initially
+  const initialSession = active[0] ?? all[0]!;
+  await connectToSession(initialSession);
   console.log("  [session] Initial read complete, watching for changes...\n");
 
   // ─── Vite dev server ──────────────────────────────────────────────
@@ -151,25 +199,19 @@ async function main() {
   await vite.listen();
   const resolvedPort = vite.config.server.port ?? VITE_PORT;
 
-  console.log(`  ui live:       http://localhost:${resolvedPort}/live.html`);
-  console.log(`  WebSocket:     ws://localhost:${WS_PORT}`);
-  console.log(`  Fixture mode:  http://localhost:${resolvedPort}/\n`);
+  console.log(`  Dev harness:   http://localhost:${resolvedPort}/`);
+  console.log(`  WebSocket:     ws://localhost:${WS_PORT}\n`);
 
   // Graceful shutdown
-  process.on("SIGINT", () => {
+  const shutdown = () => {
     console.log("\n  Shutting down...");
-    manager.stop();
+    manager?.stop();
     wss.close();
     vite.close();
     process.exit(0);
-  });
-
-  process.on("SIGTERM", () => {
-    manager.stop();
-    wss.close();
-    vite.close();
-    process.exit(0);
-  });
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 main().catch((err) => {

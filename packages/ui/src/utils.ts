@@ -9,6 +9,16 @@ export function formatDuration(ms: number): string {
   return rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
 }
 
+/** Compact duration: "5s", "2m 15s", "1h 3m". */
+export function formatDurationShort(ms: number): string {
+  if (ms <= 0) return "";
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ${s % 60}s`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}
+
 export function formatTokens(count: number): string {
   if (count < 1_000) return `${count} tokens`;
   if (count < 1_000_000) return `${(count / 1_000).toFixed(1)}k tokens`;
