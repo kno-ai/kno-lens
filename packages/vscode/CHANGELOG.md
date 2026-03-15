@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/kno-ai/kno-lens/compare/kno-lens-v0.2.0...kno-lens-v0.3.0) (2026-03-15)
+
+
+### Features
+
+* add Explorer timeline/heatmap views, shared TurnDetail, and UI improvements ([15e1706](https://github.com/kno-ai/kno-lens/commit/15e1706c1bcfca64f90998935341127c000253f0))
+
 ## [0.2.0](https://github.com/kno-ai/kno-lens/compare/kno-lens-v0.1.0...kno-lens-v0.2.0) (2026-03-14)
 
 
