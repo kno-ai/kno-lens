@@ -1,6 +1,6 @@
 {
   "name": "kno-lens",
-  "displayName": "KnoLens",
+  "displayName": "kno lens",
   "description": "Live session viewer for Claude Code",
   "version": "0.5.0",
   "publisher": "kno-ai",
@@ -26,7 +26,7 @@
       "activitybar": [
         {
           "id": "knoLens",
-          "title": "KnoLens",
+          "title": "kno lens",
           "icon": "media/kno-icon.svg"
         }
       ]
@@ -44,35 +44,35 @@
       {
         "command": "knoLens.showLens",
         "title": "Show Lens",
-        "category": "KnoLens"
+        "category": "kno lens"
       },
       {
         "command": "knoLens.selectSession",
         "title": "Select Session",
-        "category": "KnoLens",
+        "category": "kno lens",
         "icon": "$(list-selection)"
       },
       {
         "command": "knoLens.selectSessionNew",
         "title": "Select Session (new session available)",
-        "category": "KnoLens",
+        "category": "kno lens",
         "icon": "$(bell-dot)"
       },
       {
         "command": "knoLens.openExplorer",
         "title": "Open Explorer",
-        "category": "KnoLens",
+        "category": "kno lens",
         "icon": "$(open-preview)"
       },
       {
         "command": "knoLens.openExplorerForFile",
         "title": "Show File History in Explorer",
-        "category": "KnoLens"
+        "category": "kno lens"
       },
       {
         "command": "knoLens.refreshExplorer",
         "title": "Refresh Explorer",
-        "category": "KnoLens",
+        "category": "kno lens",
         "icon": "$(refresh)"
       }
     ],
@@ -114,7 +114,7 @@
       ]
     },
     "configuration": {
-      "title": "KnoLens",
+      "title": "kno lens",
       "properties": {
         "knoLens.summary.defaultMinImportance": {
           "type": "string",
@@ -140,6 +140,12 @@
           "type": "number",
           "default": 50,
           "description": "Maximum visible turns"
+        },
+        "knoLens.maxSessions": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "description": "Maximum number of sessions shown in the session picker"
         },
         "knoLens.throttleMs": {
           "type": "number",

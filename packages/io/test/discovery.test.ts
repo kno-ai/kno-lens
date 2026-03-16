@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { claudeProjectDir, filterActiveSessions } from "../src/discovery.js";
+import { claudeProjectDir, filterActiveSessions, classifyProjectDir } from "../src/discovery.js";
 import type { SessionInfo } from "../src/discovery.js";
 import { join, resolve, sep } from "path";
 import { homedir } from "os";
@@ -56,5 +56,37 @@ describe("filterActiveSessions", () => {
     const sessions = [makeSession(4), makeSession(6)];
     const result = filterActiveSessions(sessions);
     expect(result).toHaveLength(1);
+  });
+});
+
+describe("classifyProjectDir", () => {
+  it("returns exact for identical slugs", () => {
+    expect(classifyProjectDir("-Users-dev-code-project", "-Users-dev-code-project")).toBe("exact");
+  });
+
+  it("returns child when dir slug extends workspace slug", () => {
+    expect(classifyProjectDir("-Users-dev-code-project", "-Users-dev-code-project-subdir")).toBe(
+      "child",
+    );
+  });
+
+  it("returns parent when workspace slug extends dir slug", () => {
+    expect(classifyProjectDir("-Users-dev-code-project-subdir", "-Users-dev-code-project")).toBe(
+      "parent",
+    );
+  });
+
+  it("returns null for unrelated slugs", () => {
+    expect(classifyProjectDir("-Users-dev-code-project", "-Users-dev-other")).toBeNull();
+  });
+
+  it("does not match partial path components", () => {
+    // -Users-dev-code-pro should NOT match -Users-dev-code-project
+    // because "pro" is not a full component of "project"
+    expect(classifyProjectDir("-Users-dev-code-pro", "-Users-dev-code-project")).toBeNull();
+  });
+
+  it("requires separator after prefix for child match", () => {
+    expect(classifyProjectDir("-Users-dev-code-kno-ai", "-Users-dev-code-kno-air")).toBeNull();
   });
 });

@@ -7,7 +7,7 @@ vi.mock("vscode", () => import("./__mocks__/vscode.js"));
 import { __setConfigValue, __clearConfig } from "./__mocks__/vscode.js";
 
 // Dynamic import so the mock is in place first
-const { getSummaryConfig, getThrottleMs } = await import("../src/settings.js");
+const { getSummaryConfig, getThrottleMs, getMaxSessions } = await import("../src/settings.js");
 
 // ─── Tests ──────────────────────────────────────────────────────────────
 
@@ -73,5 +73,20 @@ describe("getThrottleMs", () => {
   it("returns configured throttle value", () => {
     __setConfigValue("knoLens", "throttleMs", 250);
     expect(getThrottleMs()).toBe(250);
+  });
+});
+
+describe("getMaxSessions", () => {
+  beforeEach(() => {
+    __clearConfig();
+  });
+
+  it("returns default of 10 when not configured", () => {
+    expect(getMaxSessions()).toBe(10);
+  });
+
+  it("returns configured value", () => {
+    __setConfigValue("knoLens", "maxSessions", 25);
+    expect(getMaxSessions()).toBe(25);
   });
 });

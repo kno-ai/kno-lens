@@ -102,7 +102,7 @@ describe("pickSession", () => {
     expect(result).toBe(session);
   });
 
-  it("limits inactive sessions to 20 items", async () => {
+  it("shows all inactive sessions passed to it", async () => {
     const sessions: SessionInfo[] = [];
     for (let i = 0; i < 30; i++) {
       sessions.push(
@@ -117,9 +117,9 @@ describe("pickSession", () => {
     await pickSession([], sessions);
 
     const items = window.showQuickPick.mock.calls[0]![0] as any[];
-    // 1 separator + 20 items max
+    // 1 separator + all 30 items (limit is applied upstream by discovery)
     const nonSeparators = items.filter((i: any) => i.kind !== QuickPickItemKind.Separator);
-    expect(nonSeparators).toHaveLength(20);
+    expect(nonSeparators).toHaveLength(30);
   });
 
   it("formats size in description", async () => {
@@ -213,5 +213,32 @@ describe("pickSession", () => {
 
     const options = window.showQuickPick.mock.calls[0]![1] as any;
     expect(options.placeHolder).toBe("Select a Claude Code session");
+  });
+
+  it("shows project directory for non-exact match sessions", async () => {
+    const session = makeSession({
+      match: "child",
+      projectDir: "/home/user/.claude/projects/-Users-dev-code-project-subdir",
+    });
+    window.showQuickPick.mockResolvedValue(undefined);
+
+    await pickSession([session], [session]);
+
+    const items = window.showQuickPick.mock.calls[0]![0] as any[];
+    const sessionItem = items[1]!;
+
+    expect(sessionItem.description).toContain("-Users-dev-code-project-subdir");
+  });
+
+  it("omits project directory for exact match sessions", async () => {
+    const session = makeSession({ match: "exact", projectDir: "/some/dir" });
+    window.showQuickPick.mockResolvedValue(undefined);
+
+    await pickSession([session], [session]);
+
+    const items = window.showQuickPick.mock.calls[0]![0] as any[];
+    const sessionItem = items[1]!;
+
+    expect(sessionItem.description).not.toContain("/some/dir");
   });
 });

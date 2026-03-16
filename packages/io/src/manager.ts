@@ -1,6 +1,6 @@
 import type { SessionSnapshot, LiveTurnState, SummaryConfig } from "@kno-lens/view";
 import { SessionController } from "@kno-lens/view";
-import { discoverSessions, filterActiveSessions } from "./discovery.js";
+import { discoverAllSessions, filterActiveSessions } from "./discovery.js";
 import type { SessionInfo } from "./discovery.js";
 import { SessionTailer } from "./tailer.js";
 import { EventEmitter } from "events";
@@ -85,9 +85,9 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
    */
   static async discover(
     workspacePath: string,
-    options?: { activeThresholdMs?: number },
+    options?: { activeThresholdMs?: number; maxSessions?: number },
   ): Promise<{ all: SessionInfo[]; active: SessionInfo[] }> {
-    const all = await discoverSessions(workspacePath);
+    const all = await discoverAllSessions(workspacePath, options?.maxSessions);
     const active = filterActiveSessions(all, options?.activeThresholdMs);
     return { all, active };
   }

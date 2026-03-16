@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import type { SessionInfo } from "@kno-lens/io";
+import { basename } from "path";
 
 interface SessionPickItem extends vscode.QuickPickItem {
   sessionInfo: SessionInfo;
@@ -24,6 +25,16 @@ function formatSize(bytes: number): string {
   return `${(kb / 1024).toFixed(1)}MB`;
 }
 
+function formatDetail(s: SessionInfo): string {
+  const age = formatAge(s.modifiedAt);
+  const size = formatSize(s.sizeBytes);
+  const base = `${age} · ${size}`;
+  if (!s.match || s.match === "exact") return base;
+  // Show the project directory name for non-exact matches
+  const dirName = s.projectDir ? basename(s.projectDir) : "";
+  return `${base} · ${dirName}`;
+}
+
 export async function pickSession(
   active: SessionInfo[],
   all: SessionInfo[],
@@ -38,7 +49,7 @@ export async function pickSession(
     for (const s of active) {
       items.push({
         label: `$(circle-filled) ${s.sessionId.slice(0, 12)}…`,
-        description: `${formatAge(s.modifiedAt)} · ${formatSize(s.sizeBytes)}`,
+        description: formatDetail(s),
         sessionInfo: s,
       });
     }
@@ -50,10 +61,10 @@ export async function pickSession(
       label: "Recent Sessions",
       kind: vscode.QuickPickItemKind.Separator,
     } as vscode.QuickPickItem);
-    for (const s of inactive.slice(0, 20)) {
+    for (const s of inactive) {
       items.push({
         label: `$(circle-outline) ${s.sessionId.slice(0, 12)}…`,
-        description: `${formatAge(s.modifiedAt)} · ${formatSize(s.sizeBytes)}`,
+        description: formatDetail(s),
         sessionInfo: s,
       });
     }

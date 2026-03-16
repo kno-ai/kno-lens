@@ -20,6 +20,10 @@ export function getSummaryConfig(): Partial<SummaryConfig> {
   return result;
 }
 
+export function getMaxSessions(): number {
+  return vscode.workspace.getConfiguration("knoLens").get("maxSessions", 10);
+}
+
 export function getThrottleMs(): number {
   return vscode.workspace.getConfiguration("knoLens").get("throttleMs", 100);
 }

@@ -1,6 +1,13 @@
 // Discovery
-export { discoverSessions, filterActiveSessions, claudeProjectDir } from "./discovery.js";
-export type { SessionInfo } from "./discovery.js";
+export {
+  discoverSessions,
+  discoverAllSessions,
+  DEFAULT_MAX_SESSIONS,
+  filterActiveSessions,
+  claudeProjectDir,
+  classifyProjectDir,
+} from "./discovery.js";
+export type { SessionInfo, ProjectMatch } from "./discovery.js";
 
 // Tailer
 export { SessionTailer } from "./tailer.js";
