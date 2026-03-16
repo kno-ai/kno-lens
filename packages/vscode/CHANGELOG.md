@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/kno-ai/kno-lens/compare/kno-lens-v0.5.0...kno-lens-v0.6.0) (2026-03-16)
+
+
+### Features
+
+* broad session discovery with project matching and maxSessions setting ([13b8d2d](https://github.com/kno-ai/kno-lens/commit/13b8d2d1bfb71b78e93e23e519639920cb7560bb))
+
+
+### Bug Fixes
+
+* rename display name from KnoLens to kno lens ([9f16731](https://github.com/kno-ai/kno-lens/commit/9f167319782b85f349e122dbbd40036f9fc7a5c6))
+
 ## [0.5.0](https://github.com/kno-ai/kno-lens/compare/kno-lens-v0.4.1...kno-lens-v0.5.0) (2026-03-16)
 
 
