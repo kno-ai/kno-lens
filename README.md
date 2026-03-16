@@ -3,6 +3,8 @@
 [![CI](https://github.com/kno-ai/kno-lens/actions/workflows/ci.yml/badge.svg)](https://github.com/kno-ai/kno-lens/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+_A [kno ai](https://kno-ai.com) project_
+
 Open-source observability for AI coding tools. See what's actually happening — every tool call, file edit, command, and error — live and after the fact.
 
 ## VS Code extension
