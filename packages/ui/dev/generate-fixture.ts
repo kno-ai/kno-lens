@@ -590,7 +590,7 @@ function generateSyntheticFixture() {
   console.log();
   console.log("To view in VS Code, copy the JSONL to your workspace's Claude projects dir:");
   console.log(`  cp ${jsonlPath} ~/.claude/projects/-$(pwd | tr '/' '-')/fixture-session.jsonl`);
-  console.log("Then use KnoLens: Select Session to pick it.");
+  console.log("Then use kno lens: Select Session to pick it.");
 }
 
 generateSyntheticFixture();

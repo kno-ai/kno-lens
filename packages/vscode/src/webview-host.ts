@@ -26,7 +26,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     font-src ${webview.cspSource};
   ">
   <link rel="stylesheet" href="${styleUri}">
-  <title>KnoLens</title>
+  <title>kno lens</title>
 </head>
 <body>
   <div id="root"><div class="empty-state"><div class="empty-state__title">Waiting for session</div></div></div>

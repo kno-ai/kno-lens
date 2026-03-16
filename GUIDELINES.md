@@ -6,7 +6,7 @@ Rules for all contributors — human or AI — working on this codebase.
 
 ## Product principles
 
-KnoLens is a tool people install into their editor — their primary
+kno lens is a tool people install into their editor — their primary
 work environment. Trust is the product. Users must be able to install
 it, forget about it, and never have a reason to question whether it's
 the cause of a problem.
@@ -20,9 +20,9 @@ it ships disabled or doesn't ship.
 the session shows what it can — it doesn't crash the sidebar. If a
 file watcher fails, the extension logs it and retries — it doesn't
 surface error dialogs. The user should never see an error caused by
-KnoLens unless they go looking for one in the output channel.
+kno lens unless they go looking for one in the output channel.
 
-**Read-only by design.** KnoLens observes sessions. It does not modify
+**Read-only by design.** kno lens observes sessions. It does not modify
 files, run commands, send network requests, or interact with Claude
 Code. It reads JSONL files and displays their contents. Any feature
 that would change this posture (writing files, calling APIs) requires
@@ -35,7 +35,7 @@ not as required configuration.
 
 **Predictable resource usage.** Memory and CPU usage should be
 proportional to the session being viewed, bounded by configurable
-limits, and constant when idle. A user running KnoLens for weeks
+limits, and constant when idle. A user running kno lens for weeks
 without restarting VS Code must not see degradation.
 
 ---
@@ -182,7 +182,7 @@ These rules enforce the product principles above in code.
 
 - npm scope is `@kno-lens/` (product scope, not org scope)
 - VS Code identifiers use `knoLens` (camelCase)
-- Display name is `KnoLens` (PascalCase)
+- Display name is `kno lens` (lowercase, two words)
 - Publisher is `kno-ai` (the organization)
 - Commit messages use [Conventional Commits](https://www.conventionalcommits.org/)
   (`feat:`, `fix:`, `chore:`, `docs:`, `test:`). release-please uses

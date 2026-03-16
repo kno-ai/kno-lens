@@ -237,7 +237,7 @@ Every derived metric that a UI needs for display — `edits` (filesCreated
   `summarizeTurn()` and stored as `TurnDisplayCounts` on the
   `TurnSummary`. UI components read these values directly.
 
-**Why:** KnoLens targets multiple platforms (VS Code today, desktop app
+**Why:** kno lens targets multiple platforms (VS Code today, desktop app
 next). If display derivations live in UI components, every new platform
 must reimplement the same calculations, creating divergence risk. When
 error counts disagreed between the session header and the timeline, it

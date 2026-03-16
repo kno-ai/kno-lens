@@ -103,11 +103,11 @@ describe("getWebviewHtml", () => {
     expect(html).toContain('<div id="root">');
   });
 
-  it("sets the title to KnoLens", () => {
+  it("sets the title to kno lens", () => {
     const webview = createMockWebview();
     const html = getWebviewHtml(webview as any, Uri.file("/ext"));
 
-    expect(html).toContain("<title>KnoLens</title>");
+    expect(html).toContain("<title>kno lens</title>");
   });
 
   it("includes charset and viewport meta tags", () => {

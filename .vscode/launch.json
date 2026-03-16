@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run KnoLens",
+      "name": "Run kno lens",
       "type": "extensionHost",
       "request": "launch",
       "args": [
