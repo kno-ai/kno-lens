@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/kno-ai/kno-lens/compare/kno-lens-v0.4.1...kno-lens-v0.5.0) (2026-03-16)
+
+
+### Features
+
+* add session picker to Explorer, always-visible counts, heatmap numbers, and session management fixes ([1a93687](https://github.com/kno-ai/kno-lens/commit/1a936877c8358b713a10388783ac415e158e1a8b))
+
 ## [0.4.1](https://github.com/kno-ai/kno-lens/compare/kno-lens-v0.4.0...kno-lens-v0.4.1) (2026-03-16)
 
 
