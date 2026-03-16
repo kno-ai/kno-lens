@@ -4,12 +4,12 @@
 
 Claude Code reads files, runs commands, and edits your code — but all you see is the final output. KnoLens shows you every step: what tools ran, what files were touched, what failed, and how each turn unfolded.
 
-![KnoLens timeline view — session activity breakdown](media/kno-lens-timeline-screenshot-vscode.png)
+![KnoLens timeline view — session activity breakdown](https://raw.githubusercontent.com/kno-ai/kno-lens/main/packages/vscode/media/kno-lens-timeline-screenshot-vscode.png)
 
 <table>
 <tr>
-<td><img src="media/kno-lens-screenshot-vscode.png" alt="KnoLens lens view — live turn-by-turn tracking" /></td>
-<td><img src="media/kno-lens-heatmap-screenshot-vscode.png" alt="KnoLens heatmap view — file edits across turns" /></td>
+<td><img src="https://raw.githubusercontent.com/kno-ai/kno-lens/main/packages/vscode/media/kno-lens-screenshot-vscode.png" alt="KnoLens lens view — live turn-by-turn tracking" /></td>
+<td><img src="https://raw.githubusercontent.com/kno-ai/kno-lens/main/packages/vscode/media/kno-lens-heatmap-screenshot-vscode.png" alt="KnoLens heatmap view — file edits across turns" /></td>
 </tr>
 </table>
 
