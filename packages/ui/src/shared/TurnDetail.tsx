@@ -41,19 +41,16 @@ export function TurnDetail({
 }: TurnDetailProps) {
   const isLive = live != null && live.turnId === turn.id;
 
-  // Compute counts from summary or live state
-  const edits = summary
-    ? summary.stats.filesCreated + summary.stats.filesEdited
-    : isLive
-      ? live.activityCounts.edits
-      : 0;
-  const deletes = summary?.stats.filesDeleted ?? 0;
-  const cmds = summary ? summary.stats.commandsRun : isLive ? live.activityCounts.commands : 0;
-  const errors = summary ? summary.stats.commandsFailed : isLive ? live.errorCount : 0;
-  const reads = isLive ? live.activityCounts.reads : 0;
-  const searches = isLive ? live.activityCounts.searches : 0;
-  const tokens = (turn.tokenUsage.inputTokens ?? 0) + (turn.tokenUsage.outputTokens ?? 0);
-  const durationMs = turn.durationMs ?? 0;
+  // Use pre-computed counts from summary, or live state for active turns
+  const c = summary?.counts;
+  const lc = isLive ? live.activityCounts : null;
+  const edits = c?.edits ?? lc?.edits ?? 0;
+  const deletes = c?.deletes ?? lc?.deletes ?? 0;
+  const cmds = c?.commands ?? lc?.commands ?? 0;
+  const reads = c?.reads ?? lc?.reads ?? 0;
+  const searches = c?.searches ?? lc?.searches ?? 0;
+  const tokens = c?.tokens ?? 0;
+  const durationMs = c?.durationMs ?? 0;
 
   const response = isLive ? live.lastText : summary?.response;
 
@@ -81,18 +78,10 @@ export function TurnDetail({
       {/* Live phase indicators */}
       {isLive && <LivePhase live={live} />}
 
-      {/* Error badge */}
-      {errors > 0 && (
-        <div class="turn-detail__badge turn-detail__badge--error">
-          {errors} error{errors === 1 ? "" : "s"}
-        </div>
-      )}
-
       {/* Counts row — only show if there's something beyond the turn number */}
       {(edits > 0 ||
         deletes > 0 ||
         cmds > 0 ||
-        errors > 0 ||
         reads > 0 ||
         searches > 0 ||
         tokens > 0 ||
@@ -100,7 +89,7 @@ export function TurnDetail({
         <div class="turn-detail__counts">
           <Count label="Turn" value={turn.id} />
           {edits > 0 && <Count label="Edits" value={edits} />}
-          {deletes > 0 && <Count label="Deleted" value={deletes} />}
+          {deletes > 0 && <Count label="Deletes" value={deletes} />}
           {cmds > 0 && <Count label="Commands" value={cmds} />}
           {reads > 0 && <Count label="Reads" value={reads} />}
           {searches > 0 && <Count label="Searches" value={searches} />}

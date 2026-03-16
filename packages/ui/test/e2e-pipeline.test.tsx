@@ -11,7 +11,7 @@ import { render } from "preact";
 
 import { ClaudeCodeParserV1 } from "@kno-lens/core";
 import type { SessionEvent } from "@kno-lens/core";
-import { SessionController, DEFAULT_SUMMARY_CONFIG } from "@kno-lens/view";
+import { SessionController } from "@kno-lens/view";
 import type { SessionSnapshot } from "@kno-lens/view";
 
 import { LensApp } from "../src/lens/LensApp.js";
@@ -42,7 +42,7 @@ function buildSnapshot(events: SessionEvent[]): SessionSnapshot {
 function renderApp(snapshot: SessionSnapshot): HTMLDivElement {
   const container = document.createElement("div");
   document.body.appendChild(container);
-  render(<LensApp snapshot={snapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />, container);
+  render(<LensApp snapshot={snapshot} live={null} />, container);
   return container;
 }
 
@@ -186,16 +186,6 @@ describe("E2E pipeline: multi-turn-with-errors.jsonl", () => {
       expect(meta).not.toBeNull();
       // Should show error count from the failed bash command
       expect(meta!.textContent).toContain("error");
-    } finally {
-      cleanup(container);
-    }
-  });
-
-  it("marks the turn with errors via CSS class", () => {
-    const container = renderApp(snapshot);
-    try {
-      const errorTurns = container.querySelectorAll(".turn-item--error");
-      expect(errorTurns.length).toBeGreaterThanOrEqual(1);
     } finally {
       cleanup(container);
     }

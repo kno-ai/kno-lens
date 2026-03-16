@@ -57,6 +57,7 @@ export class SessionBuilder {
   private filesWritten = new Set<string>();
   private fileTrackingCapped = false;
   private commandsRun = 0;
+  private filesDeleted = 0;
   private errorCount = 0;
   private completedTurns = 0;
   private totalInputTokens = 0;
@@ -145,7 +146,10 @@ export class SessionBuilder {
         // Accumulate stats from completed activities
         const act = event.activity;
         if (act.status === "error") this.errorCount++;
-        if (act.kind === "bash") this.commandsRun++;
+        if (act.kind === "bash") {
+          this.commandsRun++;
+          if (BASH_DELETE_PATTERN.test(act.command)) this.filesDeleted++;
+        }
 
         if (!this.fileTrackingCapped) {
           switch (act.kind) {
@@ -255,10 +259,16 @@ export class SessionBuilder {
       filesRead: [...this.filesRead],
       filesWritten: [...this.filesWritten],
       commandsRun: this.commandsRun,
+      filesDeleted: this.filesDeleted,
       errorCount: this.errorCount,
     };
   }
 }
+
+/** Matches common file-deletion commands in bash.
+ *  Exported so the view summarizer can use the same pattern. */
+export const BASH_DELETE_PATTERN =
+  /(?:^|[;&|]\s*)(?:rm|git\s+rm|rimraf|unlink|del|erase|Remove-Item|ri)\b/;
 
 // ─── Utilities ───────────────────────────────────────────────────────────
 

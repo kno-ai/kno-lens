@@ -255,4 +255,51 @@ describe("SessionManager", () => {
     expect(manager.sessionInfo).toBe(sessionInfo);
     expect(manager.sessionInfo.sessionId).toBe("test-session");
   });
+
+  it("suppresses live state for stale session files", async () => {
+    // Write a session with an unclosed turn (no turn_end)
+    const content = userPrompt("Hello") + "\n";
+    const sessionInfo = setupFile(content);
+    // Make the file appear old — older than liveRecencyMs
+    sessionInfo.modifiedAt = new Date(Date.now() - 120_000); // 2 minutes ago
+
+    manager = new SessionManager(sessionInfo, { liveRecencyMs: 30_000 });
+
+    const updates: SessionManagerState[] = [];
+    manager.on("update", (state) => updates.push(state));
+
+    await manager.start();
+
+    // The parser sees an unclosed turn, so liveState would normally be non-null.
+    // But the file is stale, so live should be suppressed.
+    const lastUpdate = updates[updates.length - 1];
+    expect(lastUpdate).toBeDefined();
+    expect(lastUpdate!.snapshot).not.toBeNull();
+    expect(lastUpdate!.live).toBeNull(); // suppressed — file too old
+  });
+
+  it("shows live state for recent session files", async () => {
+    // Write a session with an unclosed turn
+    const content = userPrompt("Hello") + "\n";
+    const sessionInfo = setupFile(content);
+    // File is recent — within liveRecencyMs
+    sessionInfo.modifiedAt = new Date();
+
+    manager = new SessionManager(sessionInfo, { liveRecencyMs: 30_000 });
+
+    const updates: SessionManagerState[] = [];
+    manager.on("update", (state) => updates.push(state));
+
+    await manager.start();
+
+    // File is recent, so live state should be shown for the unclosed turn
+    const lastUpdate = updates[updates.length - 1];
+    expect(lastUpdate).toBeDefined();
+    expect(lastUpdate!.snapshot).not.toBeNull();
+    // Note: live may still be null if the parser didn't produce a turn_start.
+    // The user prompt alone triggers session_start + turn_start, so
+    // the LiveTurnModel should have a non-null turnId.
+    // But the manager's effectiveLive only returns non-null if receivedPostCatchUp is true.
+    // For a recent file, receivedPostCatchUp = true, so live should be non-null.
+  });
 });

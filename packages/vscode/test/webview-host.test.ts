@@ -100,7 +100,7 @@ describe("getWebviewHtml", () => {
     const webview = createMockWebview();
     const html = getWebviewHtml(webview as any, Uri.file("/ext"));
 
-    expect(html).toContain('<div id="root"></div>');
+    expect(html).toContain('<div id="root">');
   });
 
   it("sets the title to KnoLens", () => {

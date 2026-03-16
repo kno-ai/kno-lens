@@ -1,6 +1,6 @@
 /**
  * Shared session metadata line used by both Lens and Explorer headers.
- * Renders: branch · turns · edits · commands · errors · duration · tokens
+ * Renders: branch · turns · edits · deletes · commands · errors · duration · tokens
  */
 import type { SessionSnapshot } from "@kno-lens/view";
 import { formatDuration, formatTokens } from "../utils.js";
@@ -23,6 +23,11 @@ export function SessionMeta({ session, class: cls }: SessionMetaProps) {
       {stats.filesWritten.length > 0 && (
         <span>
           {stats.filesWritten.length} edit{stats.filesWritten.length === 1 ? "" : "s"}
+        </span>
+      )}
+      {stats.filesDeleted > 0 && (
+        <span>
+          {stats.filesDeleted} delete{stats.filesDeleted === 1 ? "" : "s"}
         </span>
       )}
       {stats.commandsRun > 0 && (

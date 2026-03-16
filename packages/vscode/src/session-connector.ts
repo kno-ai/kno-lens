@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { SessionManager, lookupRecordByUuid } from "@kno-lens/io";
 import type { SessionInfo } from "@kno-lens/io";
-import { getSummaryConfig, getThrottleMs } from "./settings.js";
+import { getSummaryConfig, getThrottleMs, getLiveRecencyMs } from "./settings.js";
 import type { PanelManager } from "./panel-manager.js";
 
 /**
@@ -12,7 +12,7 @@ export class SessionConnector implements vscode.Disposable {
   private manager: SessionManager;
   private disposables: vscode.Disposable[] = [];
   private explorer: PanelManager | undefined;
-
+  private resendTimer: ReturnType<typeof setTimeout> | undefined;
   readonly sessionInfo: SessionInfo;
 
   constructor(sessionInfo: SessionInfo, webview: vscode.Webview, explorer?: PanelManager) {
@@ -22,6 +22,7 @@ export class SessionConnector implements vscode.Disposable {
     this.manager = new SessionManager(sessionInfo, {
       summaryConfig: getSummaryConfig(),
       throttleMs: getThrottleMs(),
+      liveRecencyMs: getLiveRecencyMs(),
     });
 
     // Manager → Webview (sidebar)
@@ -101,10 +102,10 @@ export class SessionConnector implements vscode.Disposable {
     // may not have been ready. Re-send to be safe.
     if (state.snapshot) {
       // Small delay to let the webview script initialize
-      setTimeout(() => {
+      this.resendTimer = setTimeout(() => {
+        this.resendTimer = undefined;
         const s = this.manager.state;
         if (s.snapshot) {
-          // Use the webview from the update handler via closure
           this.manager.emit("update", s);
         }
       }, 100);
@@ -112,6 +113,10 @@ export class SessionConnector implements vscode.Disposable {
   }
 
   dispose(): void {
+    if (this.resendTimer) {
+      clearTimeout(this.resendTimer);
+      this.resendTimer = undefined;
+    }
     this.manager.stop();
     for (const d of this.disposables) {
       d.dispose();
@@ -195,12 +200,11 @@ export class SessionConnector implements vscode.Disposable {
 
     // Restrict to workspace directories to prevent opening arbitrary files
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders) {
-      const inWorkspace = workspaceFolders.some((folder) => filePath.startsWith(folder.uri.fsPath));
-      if (!inWorkspace) {
-        console.warn(`[KnoLens] Blocked open-file outside workspace: ${filePath}`);
-        return;
-      }
+    if (!workspaceFolders) return;
+    const inWorkspace = workspaceFolders.some((folder) => filePath.startsWith(folder.uri.fsPath));
+    if (!inWorkspace) {
+      console.warn(`[KnoLens] Blocked open-file outside workspace: ${filePath}`);
+      return;
     }
 
     const uri = vscode.Uri.file(filePath);

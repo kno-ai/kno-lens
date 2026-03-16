@@ -259,7 +259,7 @@ Controls collection sizes in the materialized session.
 | Tracked files (read + written) | 2000          | New paths ignored; counters still increment                  |
 
 **Stats survive eviction.** Token totals, cost, duration, command
-count, and error count are accumulated on `turn_end` before the turn
+count, delete count, and error count are accumulated before the turn
 could be evicted. A session with 1000 turns will show accurate totals
 even though only the most recent 500 turns are in the array.
 
@@ -273,3 +273,30 @@ Controls display density.
 | Max visible items per turn | 15      | "…and N more" placeholder appended      |
 | Default min importance     | medium  | Low-importance items hidden             |
 | Hidden categories          | none    | Configured categories excluded entirely |
+
+---
+
+## Display counts
+
+When a turn completes, `summarizeTurn()` computes `TurnDisplayCounts`
+— a flat object with every derived metric the UI needs:
+
+```
+{
+  edits: number,      // filesCreated + filesEdited
+  deletes: number,    // filesDeleted (from bash delete-pattern detection)
+  commands: number,   // commandsRun (includes failed commands)
+  errors: number,     // turn.errorCount (all error-status activities)
+  reads: number,      // filesRead
+  searches: number,   // searchesRun
+  tokens: number,     // inputTokens + outputTokens
+  durationMs: number  // turn.durationMs or startedAt→endedAt fallback
+}
+```
+
+These values are stored on `TurnSummary.counts` and travel with the
+snapshot through postMessage to the webview. UI components read them
+directly — no derivation at render time.
+
+For live (in-progress) turns, `LiveActivityCounts` provides equivalent
+real-time counts from `LiveTurnModel`.

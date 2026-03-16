@@ -23,3 +23,7 @@ export function getSummaryConfig(): Partial<SummaryConfig> {
 export function getThrottleMs(): number {
   return vscode.workspace.getConfiguration("knoLens").get("throttleMs", 100);
 }
+
+export function getLiveRecencyMs(): number {
+  return vscode.workspace.getConfiguration("knoLens").get("liveRecencyMs", 30_000);
+}

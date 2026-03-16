@@ -341,13 +341,20 @@ describe("SessionController", () => {
     const s1 = ctrl.summaries.get(1)!;
     expect(s1.stats.filesEdited).toBe(1);
     expect(s1.stats.commandsFailed).toBe(1);
-    expect(s1.stats.commandsRun).toBe(1);
+    expect(s1.stats.commandsRun).toBe(2); // includes the failed one
+
+    // Verify TurnDisplayCounts are pre-computed
+    expect(s1.counts).toBeDefined();
+    expect(s1.counts.edits).toBe(1);
+    expect(s1.counts.commands).toBe(2);
+    expect(s1.counts.errors).toBe(1);
 
     // Turn 2: text only
     ctrl.onEvent(turnStart(2, "Explain the fix"));
     ctrl.onEvent(turnEnd(2));
     expect(ctrl.summaries.size).toBe(2);
     expect(ctrl.summaries.get(2)!.items).toHaveLength(0);
+    expect(ctrl.summaries.get(2)!.counts.edits).toBe(0);
 
     // End session
     ctrl.onEvent(sessionEnd());

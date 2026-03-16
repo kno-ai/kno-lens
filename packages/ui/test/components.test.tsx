@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render } from "preact";
 import type { SessionSnapshot, LiveTurnState } from "@kno-lens/view";
-import { DEFAULT_SUMMARY_CONFIG } from "@kno-lens/view";
 import { LensApp } from "../src/lens/LensApp.js";
 
 import snapshotFixture from "./fixtures/lens-snapshot.json";
@@ -26,9 +25,7 @@ function cleanup(container: HTMLDivElement) {
 
 describe("LensApp", () => {
   it("renders with basic fixture data", () => {
-    const container = renderInto(
-      <LensApp snapshot={basicSnapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
-    );
+    const container = renderInto(<LensApp snapshot={basicSnapshot} live={null} />);
     try {
       expect(container.querySelector(".session-header")).not.toBeNull();
       expect(container.textContent).toContain("warm-crimson-eagle");
@@ -39,12 +36,10 @@ describe("LensApp", () => {
   });
 
   it("shows empty state when snapshot is null", () => {
-    const container = renderInto(
-      <LensApp snapshot={null} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
-    );
+    const container = renderInto(<LensApp snapshot={null} live={null} />);
     try {
       expect(container.querySelector(".empty-state")).not.toBeNull();
-      expect(container.textContent).toContain("No session loaded");
+      expect(container.textContent).toContain("Waiting for session");
       expect(container.querySelector(".session-header")).toBeNull();
       expect(container.querySelector(".turn-list")).toBeNull();
     } finally {
@@ -52,23 +47,52 @@ describe("LensApp", () => {
     }
   });
 
-  it("shows 'Invalid session data' for malformed snapshots", () => {
-    const malformed = { garbage: true } as unknown as SessionSnapshot;
-    const container = renderInto(
-      <LensApp snapshot={malformed} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
-    );
+  it("shows 'No workspace open' for no-workspace status", () => {
+    const container = renderInto(<LensApp snapshot={null} live={null} status="no-workspace" />);
     try {
       expect(container.querySelector(".empty-state")).not.toBeNull();
-      expect(container.textContent).toContain("Invalid session data");
+      expect(container.textContent).toContain("No workspace open");
+    } finally {
+      cleanup(container);
+    }
+  });
+
+  it("shows 'Connecting' for connecting status", () => {
+    const container = renderInto(<LensApp snapshot={null} live={null} status="connecting" />);
+    try {
+      expect(container.querySelector(".empty-state")).not.toBeNull();
+      expect(container.textContent).toContain("Connecting");
+    } finally {
+      cleanup(container);
+    }
+  });
+
+  it("shows Select Session button in searching state", () => {
+    const container = renderInto(
+      <LensApp snapshot={null} live={null} status="searching" onSelectSession={() => {}} />,
+    );
+    try {
+      const button = container.querySelector(".empty-state__action");
+      expect(button).not.toBeNull();
+      expect(button!.textContent).toContain("Select Session");
+    } finally {
+      cleanup(container);
+    }
+  });
+
+  it("shows empty state for malformed snapshots", () => {
+    const malformed = { garbage: true } as unknown as SessionSnapshot;
+    const container = renderInto(<LensApp snapshot={malformed} live={null} />);
+    try {
+      expect(container.querySelector(".empty-state")).not.toBeNull();
+      expect(container.textContent).toContain("Waiting for session");
     } finally {
       cleanup(container);
     }
   });
 
   it("renders session header with correct metadata from fixture", () => {
-    const container = renderInto(
-      <LensApp snapshot={basicSnapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
-    );
+    const container = renderInto(<LensApp snapshot={basicSnapshot} live={null} />);
     try {
       const header = container.querySelector(".session-header")!;
       expect(header).not.toBeNull();
@@ -82,6 +106,7 @@ describe("LensApp", () => {
       expect(meta!.textContent).toContain("fix/connection-pool");
       expect(meta!.textContent).toContain("4 turns");
       expect(meta!.textContent).toContain("6 edits");
+      expect(meta!.textContent).toContain("1 delete");
       expect(meta!.textContent).toContain("2 errors");
     } finally {
       cleanup(container);
@@ -89,9 +114,7 @@ describe("LensApp", () => {
   });
 
   it("renders live turn with green border", () => {
-    const container = renderInto(
-      <LensApp snapshot={liveSnapshot} live={liveTurnState} config={DEFAULT_SUMMARY_CONFIG} />,
-    );
+    const container = renderInto(<LensApp snapshot={liveSnapshot} live={liveTurnState} />);
     try {
       expect(container.querySelector(".session-header")).not.toBeNull();
       expect(container.querySelector(".turn-item--live")).not.toBeNull();
@@ -107,9 +130,7 @@ describe("LensApp", () => {
   });
 
   it("live turn is collapsible like any other turn", async () => {
-    const container = renderInto(
-      <LensApp snapshot={liveSnapshot} live={liveTurnState} config={DEFAULT_SUMMARY_CONFIG} />,
-    );
+    const container = renderInto(<LensApp snapshot={liveSnapshot} live={liveTurnState} />);
     try {
       const liveTurn = container.querySelector(".turn-item--live")!;
       expect(liveTurn).not.toBeNull();
@@ -133,12 +154,7 @@ describe("LensApp", () => {
   it("passes onOpenFile callback through to TurnList", () => {
     const onOpenFile = (_path: string) => {};
     const container = renderInto(
-      <LensApp
-        snapshot={basicSnapshot}
-        live={null}
-        config={DEFAULT_SUMMARY_CONFIG}
-        onOpenFile={onOpenFile}
-      />,
+      <LensApp snapshot={basicSnapshot} live={null} onOpenFile={onOpenFile} />,
     );
     try {
       expect(container.querySelector(".turn-list")).not.toBeNull();
@@ -150,9 +166,7 @@ describe("LensApp", () => {
   });
 
   it("renders response text in expanded turns", () => {
-    const container = renderInto(
-      <LensApp snapshot={basicSnapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
-    );
+    const container = renderInto(<LensApp snapshot={basicSnapshot} live={null} />);
     try {
       const response = container.querySelector(".turn-detail__response");
       expect(response).not.toBeNull();
@@ -165,12 +179,7 @@ describe("LensApp", () => {
   it("renders file paths as clickable sub-links", () => {
     const onOpenFile = (_path: string) => {};
     const container = renderInto(
-      <LensApp
-        snapshot={basicSnapshot}
-        live={null}
-        config={DEFAULT_SUMMARY_CONFIG}
-        onOpenFile={onOpenFile}
-      />,
+      <LensApp snapshot={basicSnapshot} live={null} onOpenFile={onOpenFile} />,
     );
     try {
       const links = container.querySelectorAll(".turn-detail__subitem--link");
@@ -181,9 +190,7 @@ describe("LensApp", () => {
   });
 
   it("renders activity items in expanded turns", () => {
-    const container = renderInto(
-      <LensApp snapshot={basicSnapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
-    );
+    const container = renderInto(<LensApp snapshot={basicSnapshot} live={null} />);
     try {
       const items = container.querySelectorAll(".turn-detail__item");
       expect(items.length).toBeGreaterThan(0);
@@ -193,9 +200,7 @@ describe("LensApp", () => {
   });
 
   it("shows response text before activity items in expanded turn", () => {
-    const container = renderInto(
-      <LensApp snapshot={basicSnapshot} live={null} config={DEFAULT_SUMMARY_CONFIG} />,
-    );
+    const container = renderInto(<LensApp snapshot={basicSnapshot} live={null} />);
     try {
       const detail = container.querySelector(".turn-item--expanded .turn-detail");
       expect(detail).not.toBeNull();

@@ -199,6 +199,26 @@ describe("LiveTurnModel", () => {
     expect(model.current.activityCounts.edits).toBe(1);
   });
 
+  it("tracks deletes for bash commands matching delete pattern", () => {
+    model.update(turnStart(1));
+    const rm = makeActivity("bash", "done", { command: "rm -rf dist" });
+    model.update(activityStart(1, rm));
+    model.update(activityEnd(1, rm));
+
+    expect(model.current.activityCounts.deletes).toBe(1);
+    expect(model.current.activityCounts.commands).toBe(1); // also a command
+  });
+
+  it("does not count non-delete bash as delete", () => {
+    model.update(turnStart(1));
+    const test = makeActivity("bash", "done", { command: "npm test" });
+    model.update(activityStart(1, test));
+    model.update(activityEnd(1, test));
+
+    expect(model.current.activityCounts.deletes).toBe(0);
+    expect(model.current.activityCounts.commands).toBe(1);
+  });
+
   it("classifies unknown kinds as other", () => {
     model.update(turnStart(1));
     const mcp = makeActivity("mcp_call");

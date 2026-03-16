@@ -28,6 +28,13 @@ export interface SessionManagerOptions {
   summaryConfig?: Partial<SummaryConfig> | undefined;
   /** Throttle interval for update emissions (ms). Default: 50. */
   throttleMs?: number | undefined;
+  /**
+   * How recently (ms) the session file must have been modified for
+   * live state to be shown after catch-up read. If the file is older
+   * than this, any open turn from the initial read is treated as stale
+   * and live state is suppressed until new writes arrive. Default: 30000.
+   */
+  liveRecencyMs?: number | undefined;
 }
 
 // ─── SessionManager ──────────────────────────────────────────────────────
@@ -49,6 +56,17 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
   private throttleTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingUpdate = false;
   private stopped = false;
+  private liveRecencyMs: number;
+
+  /**
+   * Whether the session file has received new writes since the initial
+   * catch-up read completed. Until this is true, live state from the
+   * catch-up is suppressed if the file mtime is older than liveRecencyMs.
+   */
+  private receivedPostCatchUp = false;
+
+  /** True while the initial catch-up read is in progress. */
+  private catchingUp = true;
 
   readonly sessionInfo: SessionInfo;
 
@@ -56,6 +74,7 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     super();
     this.sessionInfo = sessionInfo;
     this.throttleMs = options?.throttleMs ?? 50;
+    this.liveRecencyMs = options?.liveRecencyMs ?? 30_000;
     this.controller = new SessionController(options?.summaryConfig);
     this.tailer = new SessionTailer(sessionInfo.path);
   }
@@ -76,6 +95,11 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
   /** Start tailing the session file. */
   async start(): Promise<void> {
     this.tailer.on("events", (events) => {
+      // Events arriving after catch-up are from real file writes
+      if (!this.catchingUp) {
+        this.receivedPostCatchUp = true;
+      }
+
       for (const event of events) {
         this.controller.onEvent(event);
 
@@ -91,6 +115,19 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     });
 
     await this.tailer.start();
+    this.catchingUp = false;
+
+    // After catch-up, determine if the session file is recent enough
+    // for its live state to be trustworthy. If the file is stale,
+    // any open turn from the log is leftover — not actually running.
+    const fileAge = Date.now() - this.sessionInfo.modifiedAt.getTime();
+    if (fileAge > this.liveRecencyMs) {
+      this.receivedPostCatchUp = false;
+    } else {
+      // File is recent — trust the live state from catch-up
+      this.receivedPostCatchUp = true;
+    }
+
     // Flush any accumulated state from initial read
     this.flushUpdate();
     this.emit("ready");
@@ -117,8 +154,19 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     }
     return {
       snapshot: this.controller.exportState(),
-      live: this.controller.liveState ?? null,
+      live: this.effectiveLive,
     };
+  }
+
+  /**
+   * Returns live state only if we trust it — suppressed when the
+   * session file is stale and no new writes have arrived since catch-up.
+   */
+  private get effectiveLive(): LiveTurnState | null {
+    const live = this.controller.liveState ?? null;
+    if (!live) return null;
+    // Suppress stale live state from catch-up until real writes arrive
+    return this.receivedPostCatchUp ? live : null;
   }
 
   // ─── Throttled updates ──────────────────────────────────────────────
@@ -139,7 +187,7 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
 
     this.emit("update", {
       snapshot: this.controller.exportState(),
-      live: this.controller.liveState ?? null,
+      live: this.effectiveLive,
     });
   }
 
@@ -152,7 +200,7 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     this.pendingUpdate = false;
     this.emit("update", {
       snapshot: this.controller.exportState(),
-      live: this.controller.liveState ?? null,
+      live: this.effectiveLive,
     });
   }
 }

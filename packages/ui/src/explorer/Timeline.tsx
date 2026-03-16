@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "preact/hooks";
-import type { SessionSnapshot, TurnSummary, LiveTurnState } from "@kno-lens/view";
-import { formatTokens, formatDurationShort } from "../utils.js";
+import type {
+  SessionSnapshot,
+  TurnSummary,
+  TurnDisplayCounts,
+  LiveTurnState,
+} from "@kno-lens/view";
+import { formatTokensCompact, formatDurationShort } from "../utils.js";
 import { TurnDetail } from "../shared/TurnDetail.js";
 
 interface TimelineProps {
@@ -17,37 +22,11 @@ type Turn = SessionSnapshot["session"]["turns"][number];
 
 // ─── Data ─────────────────────────────────────────────────────────
 
-interface TurnCounts {
-  edits: number;
-  deletes: number;
-  cmds: number;
-  errors: number;
-  tokens: number;
-  durationMs: number;
-}
-
-function turnCounts(snapshot: SessionSnapshot, turn: Turn): TurnCounts {
-  const summary = snapshot.summaries[turn.id];
+/** Use pre-computed display counts from the view layer. */
+function getCounts(summary: TurnSummary | undefined, turn: Turn): TurnDisplayCounts {
+  if (summary) return summary.counts;
+  // Fallback for unsummarized turns (active/live) — compute minimally
   const tokens = (turn.tokenUsage.inputTokens ?? 0) + (turn.tokenUsage.outputTokens ?? 0);
-  let durationMs = turn.durationMs ?? 0;
-  if (durationMs === 0 && turn.startedAt && turn.endedAt) {
-    const start = new Date(turn.startedAt).getTime();
-    const end = new Date(turn.endedAt).getTime();
-    if (!isNaN(start) && !isNaN(end)) durationMs = end - start;
-  }
-
-  if (summary) {
-    const s = summary.stats;
-    return {
-      edits: s.filesCreated + s.filesEdited,
-      deletes: s.filesDeleted,
-      cmds: s.commandsRun,
-      errors: s.errors,
-      tokens,
-      durationMs,
-    };
-  }
-
   let edits = 0;
   let cmds = 0;
   for (const step of turn.steps) {
@@ -57,23 +36,32 @@ function turnCounts(snapshot: SessionSnapshot, turn: Turn): TurnCounts {
       else if (k === "bash") cmds++;
     }
   }
-  return { edits, deletes: 0, cmds, errors: turn.errorCount, tokens, durationMs };
+  return {
+    edits,
+    deletes: 0,
+    commands: cmds,
+    errors: turn.errorCount,
+    reads: 0,
+    searches: 0,
+    tokens,
+    durationMs: turn.durationMs ?? 0,
+  };
 }
 
 function computeMaxCounts(rows: TurnRow[]) {
   let maxEdits = 0;
   let maxDeletes = 0;
-  let maxCmds = 0;
+  let maxCommands = 0;
   let maxErrors = 0;
   let maxTokens = 0;
   for (const r of rows) {
     maxEdits = Math.max(maxEdits, r.counts.edits);
     maxDeletes = Math.max(maxDeletes, r.counts.deletes);
-    maxCmds = Math.max(maxCmds, r.counts.cmds);
+    maxCommands = Math.max(maxCommands, r.counts.commands);
     maxErrors = Math.max(maxErrors, r.counts.errors);
     maxTokens = Math.max(maxTokens, r.counts.tokens);
   }
-  return { maxEdits, maxDeletes, maxCmds, maxErrors, maxTokens };
+  return { maxEdits, maxDeletes, maxCommands, maxErrors, maxTokens };
 }
 
 function intensity(count: number, max: number): number {
@@ -148,14 +136,14 @@ function searchTurnRow(row: TurnRow, query: string): SearchMatch | null {
 
 // ─── Sort ─────────────────────────────────────────────────────────
 
-type SortKey = "id" | "edits" | "deletes" | "cmds" | "errors" | "duration" | "tokens";
+type SortKey = "id" | "edits" | "deletes" | "commands" | "errors" | "duration" | "tokens";
 type SortDir = "asc" | "desc";
 
 interface TurnRow {
   turn: Turn;
   prompt: string;
   summary: TurnSummary | undefined;
-  counts: TurnCounts;
+  counts: TurnDisplayCounts;
 }
 
 function sortRows(rows: TurnRow[], key: SortKey, dir: SortDir): TurnRow[] {
@@ -177,9 +165,9 @@ function sortRows(rows: TurnRow[], key: SortKey, dir: SortDir): TurnRow[] {
         av = a.counts.deletes;
         bv = b.counts.deletes;
         break;
-      case "cmds":
-        av = a.counts.cmds;
-        bv = b.counts.cmds;
+      case "commands":
+        av = a.counts.commands;
+        bv = b.counts.commands;
         break;
       case "errors":
         av = a.counts.errors;
@@ -237,7 +225,7 @@ export function Timeline({
         turn,
         prompt: snapshot.summaries[turn.id]?.prompt ?? turn.prompt,
         summary: snapshot.summaries[turn.id],
-        counts: turnCounts(snapshot, turn),
+        counts: getCounts(snapshot.summaries[turn.id], turn),
       });
     }
     return rows;
@@ -297,28 +285,28 @@ export function Timeline({
   const hasAnyDeletes = allRows.some((r) => r.counts.deletes > 0);
 
   // Build CSS grid-template-columns once from current widths.
-  // The prompt column uses the resizable width; all others are fixed.
+  // Fixed widths are required because each row is a separate CSS grid
+  // — max-content would resolve independently per row, misaligning columns.
+  // Widths are sized to fit the widest expected content (header label + sort arrow,
+  // or data values like "8m 32s", "17.2k").
   const gridColumns = [
-    "64px", // When
+    "64px", // When: "15m ago"
     promptWidth != null ? `${promptWidth}px` : "1fr", // Prompt
-    "4px", // Resize handle
-    "56px", // Edits
-    ...(hasAnyDeletes ? ["36px"] : []), // Del (conditional)
-    "56px", // Cmds
-    "56px", // Errs
-    "52px", // Duration
-    "68px", // Tokens
+    "52px", // Edits
+    ...(hasAnyDeletes ? ["56px"] : []), // Deletes
+    "52px", // Cmds
+    "52px", // Errors
+    "64px", // Time: "8m 32s"
+    "64px", // Tokens: "17.2k"
   ].join(" ");
 
   const handlePromptResize = useCallback(
     (e: MouseEvent) => {
       e.preventDefault();
       const startX = e.clientX;
-      // When null (1fr), measure the rendered width from the handle's previous sibling
-      const startWidth =
-        promptWidth ??
-        (e.target as HTMLElement).previousElementSibling?.getBoundingClientRect().width ??
-        200;
+      // When null (1fr), measure the rendered prompt column width
+      const promptCol = (e.target as HTMLElement).parentElement;
+      const startWidth = promptWidth ?? promptCol?.getBoundingClientRect().width ?? 200;
       const onMove = (ev: MouseEvent) => {
         setPromptWidth(Math.max(120, startWidth + (ev.clientX - startX)));
       };
@@ -363,8 +351,8 @@ export function Timeline({
                 {sortedRows.length}/{allRows.length}
               </span>
             )}
+            <div class="timeline__col-resize-border" onMouseDown={handlePromptResize} />
           </div>
-          <div class="timeline__col-resize" onMouseDown={handlePromptResize} />
           <div
             class="timeline__col timeline__col--cell timeline__col--sortable"
             onClick={() => handleSort("edits")}
@@ -373,29 +361,29 @@ export function Timeline({
           </div>
           {hasAnyDeletes && (
             <div
-              class="timeline__col timeline__col--cell-narrow timeline__col--sortable"
+              class="timeline__col timeline__col--cell timeline__col--sortable"
               onClick={() => handleSort("deletes")}
             >
-              Del{sortArrow("deletes")}
+              Deletes{sortArrow("deletes")}
             </div>
           )}
           <div
             class="timeline__col timeline__col--cell timeline__col--sortable"
-            onClick={() => handleSort("cmds")}
+            onClick={() => handleSort("commands")}
           >
-            Cmds{sortArrow("cmds")}
+            Cmds{sortArrow("commands")}
           </div>
           <div
             class="timeline__col timeline__col--cell timeline__col--sortable"
             onClick={() => handleSort("errors")}
           >
-            Errs{sortArrow("errors")}
+            Errors{sortArrow("errors")}
           </div>
           <div
             class="timeline__col timeline__col--duration timeline__col--sortable"
             onClick={() => handleSort("duration")}
           >
-            Dur{sortArrow("duration")}
+            Time{sortArrow("duration")}
           </div>
           <div
             class="timeline__col timeline__col--tokens timeline__col--sortable"
@@ -443,37 +431,19 @@ export function Timeline({
                   {match && match.source !== "prompt" && (
                     <span class="timeline__match-hint">matched in {match.source}</span>
                   )}
+                  <div class="timeline__col-resize-border" onMouseDown={handlePromptResize} />
                 </div>
-                <div class="timeline__col-resize-spacer" />
                 <IntensityCell count={counts.edits} max={maxCounts.maxEdits} color="teal" />
                 {hasAnyDeletes && (
-                  <IntensityCell
-                    count={counts.deletes}
-                    max={maxCounts.maxDeletes}
-                    color="red"
-                    narrow
-                  />
+                  <IntensityCell count={counts.deletes} max={maxCounts.maxDeletes} color="red" />
                 )}
-                <IntensityCell count={counts.cmds} max={maxCounts.maxCmds} color="blue" />
+                <IntensityCell count={counts.commands} max={maxCounts.maxCommands} color="blue" />
                 <IntensityCell count={counts.errors} max={maxCounts.maxErrors} color="orange" />
                 <div class="timeline__col timeline__col--duration">
                   {formatDurationShort(counts.durationMs)}
                 </div>
                 <div class="timeline__col timeline__col--tokens">
-                  <div class="timeline__token-bar-bg">
-                    <div
-                      class="timeline__token-bar"
-                      style={{
-                        width:
-                          maxCounts.maxTokens > 0
-                            ? `${(counts.tokens / maxCounts.maxTokens) * 100}%`
-                            : "0%",
-                      }}
-                    />
-                  </div>
-                  <span class="timeline__token-label">
-                    {counts.tokens > 0 ? formatTokens(counts.tokens) : ""}
-                  </span>
+                  {counts.tokens > 0 ? formatTokensCompact(counts.tokens) : ""}
                 </div>
               </div>
             );
@@ -547,7 +517,11 @@ function IntensityCell({
   return (
     <div
       class={`timeline__col ${narrow ? "timeline__col--cell-narrow" : "timeline__col--cell"}`}
-      style={{ background: bg }}
+      style={{
+        background: bg,
+        // Dark text on colored backgrounds for contrast
+        ...(alpha > 0 ? { color: "#0d1520", opacity: 1 } : {}),
+      }}
     >
       {count > 0 ? count : ""}
     </div>

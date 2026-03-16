@@ -5,15 +5,25 @@ import { ErrorBoundary } from "./ErrorBoundary.js";
 import { SessionHeader } from "./SessionHeader.js";
 import { TurnList } from "./TurnList.js";
 
+// ─── Status types ────────────────────────────────────────────────
+
+/** Connection status sent from the extension to guide empty-state messaging. */
+export type ConnectionStatus =
+  | "searching" // Polling for sessions, none found yet
+  | "no-workspace" // No workspace folder open
+  | "connecting" // Found a session, connecting now
+  | "connected"; // Session loaded and tailing
+
 // ─── Props-based App (used by harness and tests) ────────────────
 
 export interface LensAppProps {
   snapshot: SessionSnapshot | null;
   live: LiveTurnState | null;
-  config: SummaryConfig;
+  status?: ConnectionStatus | undefined;
   onDrillDown?: ((activityId: string) => void) | undefined;
   onOpenFile?: ((path: string) => void) | undefined;
   onShowDiff?: ((activityId: string) => void) | undefined;
+  onSelectSession?: (() => void) | undefined;
 }
 
 /** Minimal runtime check that a snapshot has the shape we need to render. */
@@ -32,13 +42,75 @@ function isValidSnapshot(s: unknown): s is SessionSnapshot {
   );
 }
 
-export function LensApp({ snapshot, live, onDrillDown, onOpenFile, onShowDiff }: LensAppProps) {
+function EmptyState({
+  status,
+  onSelectSession,
+}: {
+  status: ConnectionStatus;
+  onSelectSession?: (() => void) | undefined;
+}) {
+  switch (status) {
+    case "no-workspace":
+      return (
+        <div class="empty-state">
+          <div class="empty-state__title">No workspace open</div>
+          <div class="empty-state__hint">Open a folder to get started.</div>
+        </div>
+      );
+    case "searching":
+      return (
+        <div class="empty-state">
+          <div class="empty-state__title">Waiting for session</div>
+          <div class="empty-state__hint">
+            Start Claude Code in this workspace — KnoLens will connect automatically.
+          </div>
+          {onSelectSession && (
+            <button class="empty-state__action" onClick={onSelectSession}>
+              Select Session
+            </button>
+          )}
+        </div>
+      );
+    case "connecting":
+      return (
+        <div class="empty-state">
+          <div class="empty-state__title">Connecting…</div>
+        </div>
+      );
+    default:
+      // "connected" or any unknown status — shouldn't reach here
+      // because LensApp renders session data when connected.
+      return (
+        <div class="empty-state">
+          <div class="empty-state__title">Waiting for session</div>
+          <div class="empty-state__hint">
+            Start Claude Code in this workspace — KnoLens will connect automatically.
+          </div>
+          {onSelectSession && (
+            <button class="empty-state__action" onClick={onSelectSession}>
+              Select Session
+            </button>
+          )}
+        </div>
+      );
+  }
+}
+
+export function LensApp({
+  snapshot,
+  live,
+  status = "searching",
+  onDrillDown,
+  onOpenFile,
+  onShowDiff,
+  onSelectSession,
+}: LensAppProps) {
   if (!snapshot) {
-    return <div class="empty-state">No session loaded</div>;
+    return <EmptyState status={status} onSelectSession={onSelectSession} />;
   }
 
   if (!isValidSnapshot(snapshot)) {
-    return <div class="empty-state">Invalid session data</div>;
+    return <EmptyState status={status} onSelectSession={onSelectSession} />;
   }
 
   // If the live turn already has a summary, it's completed — don't show it as live.
@@ -79,7 +151,8 @@ function getVsCodeApi(): ReturnType<typeof acquireVsCodeApi> | undefined {
 export function LensWebviewApp() {
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null);
   const [live, setLive] = useState<LiveTurnState | null>(null);
-  const [config, setConfig] = useState<SummaryConfig>(DEFAULT_SUMMARY_CONFIG);
+  const [, setConfig] = useState<SummaryConfig>(DEFAULT_SUMMARY_CONFIG);
+  const [status, setStatus] = useState<ConnectionStatus>("searching");
 
   const handler = useCallback((e: MessageEvent) => {
     const msg = e.data;
@@ -87,12 +160,16 @@ export function LensWebviewApp() {
     switch (msg.type) {
       case "snapshot":
         setSnapshot(msg.data);
+        setStatus("connected");
         break;
       case "live":
         setLive(msg.data);
         break;
       case "config":
         setConfig((prev) => ({ ...prev, ...msg.data }));
+        break;
+      case "status":
+        setStatus(msg.data);
         break;
     }
   }, []);
@@ -125,14 +202,19 @@ export function LensWebviewApp() {
     [vscode],
   );
 
+  const onSelectSession = useCallback(() => {
+    vscode?.postMessage({ type: "select-session" });
+  }, [vscode]);
+
   return (
     <LensApp
       snapshot={snapshot}
       live={live}
-      config={config}
+      status={status}
       onDrillDown={onDrillDown}
       onOpenFile={onOpenFile}
       onShowDiff={onShowDiff}
+      onSelectSession={onSelectSession}
     />
   );
 }

@@ -101,6 +101,38 @@
   gap: 2px;
 }
 
+/* Activity icons — fixed-width so labels align */
+.summary-item__icon {
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+  font-size: 0.8em;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.summary-item__icon--green {
+  color: var(--vscode-charts-green, #4ec);
+}
+.summary-item__icon--orange {
+  color: var(--vscode-charts-orange, #e90);
+}
+.summary-item__icon--blue {
+  color: var(--vscode-charts-blue, #5af);
+}
+.summary-item__icon--red {
+  color: var(--vscode-charts-red, #f55);
+}
+.summary-item__icon--yellow {
+  color: var(--vscode-charts-yellow, #ec0);
+}
+.summary-item__icon--magenta {
+  color: #c5f;
+}
+.summary-item__icon--muted {
+  color: var(--vscode-descriptionForeground, #888);
+}
+
 .turn-detail__item {
   display: flex;
   align-items: baseline;

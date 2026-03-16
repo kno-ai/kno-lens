@@ -55,6 +55,7 @@
       "filesRead": [],
       "filesWritten": ["src/middleware/auth.ts"],
       "commandsRun": 3,
+      "filesDeleted": 0,
       "errorCount": 0
     }
   },

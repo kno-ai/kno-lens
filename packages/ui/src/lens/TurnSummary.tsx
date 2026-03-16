@@ -11,6 +11,7 @@ interface TurnSummaryProps {
     startedAt: string;
     durationMs?: number | undefined;
     tokenUsage: { inputTokens?: number | undefined; outputTokens?: number | undefined };
+    errorCount: number;
   };
   live: LiveTurnState | null;
   expanded: boolean;
@@ -59,14 +60,12 @@ export function TurnSummary({
   onShowDiff,
 }: TurnSummaryProps) {
   const isLive = live != null && live.turnId === turn.id;
-  const hasErrors = summary ? summary.stats.commandsFailed > 0 : isLive && live.errorCount > 0;
   const prompt = summary?.prompt ?? turn.prompt;
   const expandable = hasDetail(summary, live, isLive);
 
   const turnClass = [
     "turn-item",
     isLive && "turn-item--live",
-    hasErrors && !isLive && "turn-item--error",
     expanded && expandable && "turn-item--expanded",
   ]
     .filter(Boolean)

@@ -91,7 +91,7 @@ export function ExplorerApp({
   if (!snapshot) {
     return (
       <div class="explorer">
-        <div class="explorer__empty">No session loaded</div>
+        <div class="explorer__empty">Waiting for session — connect in the KnoLens sidebar.</div>
       </div>
     );
   }
@@ -178,9 +178,22 @@ export function ExplorerWebviewApp() {
         case "explorer-context":
           setContext(msg.data);
           break;
+        case "clear":
+          pendingSnapshot = null;
+          if (snapshotTimer) {
+            clearTimeout(snapshotTimer);
+            snapshotTimer = null;
+          }
+          setSnapshot(null);
+          setLive(null);
+          break;
       }
     };
     window.addEventListener("message", handler);
+
+    // Tell the host we're ready to receive state
+    getVsCodeApi()?.postMessage({ type: "ready" });
+
     return () => {
       window.removeEventListener("message", handler);
       if (snapshotTimer) clearTimeout(snapshotTimer);

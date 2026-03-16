@@ -25,7 +25,7 @@ package imports only from packages to its left:
 | **vscode** | `kno-lens`       | Platform shell. Webview hosting, settings, commands.               |
 
 **ui does not depend on vscode at the npm level.** The vscode package
-bundles ui's pre-built assets (`webview.js`, `style.css`) into its
+bundles ui's pre-built assets (`webview.js`, `webview.css`) into its
 `media/` folder. Communication is via postMessage only.
 
 ---
@@ -46,6 +46,8 @@ materialized `Session` model.
 - `Session`, `Turn`, `Activity` — materialized view types
 - `SessionCoreConfig` — parser truncation limits
 - `AssemblyLimits` — builder growth caps
+- `BASH_DELETE_PATTERN` — regex for detecting file-deletion bash
+  commands, shared with view summarizer
 - `SCHEMA_VERSION` — travels with serialized data
 
 **Rules:**
@@ -58,7 +60,7 @@ materialized `Session` model.
 - Parser extracts, never interprets: no aggregation across events, no
   back-patching earlier events with later data
 - SessionBuilder is the sole place for cross-event derived data (error
-  counts, durations, stats, file tracking)
+  counts, durations, stats, file tracking, delete detection)
 
 **Bounded growth (defaults):**
 
@@ -113,9 +115,13 @@ snapshot management. The bridge between raw data and display.
 - `LiveTurnModel` — O(1) per-event status tracking for in-progress
   turns
 - `summarizeTurn()` — pure function: Turn + config → TurnSummary
+  (includes `TurnDisplayCounts`)
 - `activityLabel()` — pure function: Activity → human-readable string
 - `SessionSnapshot` — serializable controller state for persistence
   and rendering
+- `TurnDisplayCounts` — pre-computed display-ready counts per turn
+  (edits, deletes, commands, errors, reads, searches, tokens,
+  durationMs)
 - `SummaryConfig` — display tuning (importance overrides, min
   importance, grouping, max items, max visible turns)
 - Category registry — icons, colors, filter groups for each activity
@@ -130,6 +136,12 @@ snapshot management. The bridge between raw data and display.
 - `summarizeTurn()` runs only on completed turns (no partial summaries)
 - `activityLabel()` is the single source of truth for human-readable
   activity descriptions
+- **Compute display values once.** Any derived count or metric that a
+  UI component would need (edits = filesCreated + filesEdited, total
+  tokens, etc.) must be computed in the view layer and exported as
+  `TurnDisplayCounts`. UI packages read these values directly — they
+  never derive, sum, or combine raw stats. This ensures all platforms
+  (VS Code, desktop, web) show identical numbers.
 
 **Key contracts:**
 
@@ -149,7 +161,7 @@ controller.updateConfig(cfg)  → void          // re-summarizes all turns
 ```
 {
   session: Session,                    // full session with turns array
-  summaries: Record<turnId, TurnSummary>,
+  summaries: Record<turnId, TurnSummary>,  // each includes .counts: TurnDisplayCounts
   summaryConfigVersion: string         // detects stale algorithms
 }
 ```
@@ -186,7 +198,7 @@ and throttled state relay.
 - No VS Code APIs — uses only Node.js builtins (`fs`, `path`,
   `events`, `os`)
 - No direct dependency on ui
-- Throttled updates prevent excessive downstream work (default: 50ms,
+- Throttled updates prevent excessive downstream work (default: 100ms,
   configurable via `throttleMs`)
 
 **Key contracts:**
@@ -230,7 +242,7 @@ search, filtering.
 - No VS Code API dependency — runs identically in browser dev harness
   and VS Code webview
 - No business logic beyond display (no event processing, no
-  summarization)
+  summarization, no stat derivation — use `TurnDisplayCounts`)
 - Uses VS Code CSS variables for theme matching (dark, light, high
   contrast)
 - All data arrives via props (App) or postMessage (WebviewApp)
@@ -247,13 +259,14 @@ the library packages.
 
 **Internal components:**
 
-- `LensViewProvider` — registers sidebar webview, manages lifecycle,
-  auto-connect polling
+- `ViewProvider` — registers sidebar webview, manages lifecycle,
+  auto-connect and session-watch polling
 - `SessionConnector` — bridges SessionManager events to webview
   postMessage
+- `PanelManager` — manages the Explorer WebviewPanel lifecycle
 - `pickSession()` — VS Code quick pick UI for session selection
-- `getSummaryConfig()` / `getThrottleMs()` — reads VS Code settings
-  into plain config objects
+- `getSummaryConfig()` / `getThrottleMs()` / `getLiveRecencyMs()` —
+  reads VS Code settings into plain config objects
 
 **Rules:**
 
@@ -294,31 +307,38 @@ The `SessionManager` emits `"update"` events carrying
 
 **Extension → Webview:**
 
-| type         | data                     | when                  |
-| ------------ | ------------------------ | --------------------- |
-| `"snapshot"` | `SessionSnapshot`        | On every state update |
-| `"live"`     | `LiveTurnState \| null`  | On every state update |
-| `"config"`   | `Partial<SummaryConfig>` | On settings change    |
+| type         | data                     | when                                  |
+| ------------ | ------------------------ | ------------------------------------- |
+| `"snapshot"` | `SessionSnapshot`        | On every state update                 |
+| `"live"`     | `LiveTurnState \| null`  | On every state update                 |
+| `"config"`   | `Partial<SummaryConfig>` | On settings change                    |
+| `"status"`   | `ConnectionStatus`       | On connection state change (see note) |
+
+`ConnectionStatus` is `"searching" | "no-workspace" | "connecting" | "connected"`.
+Sent by the extension to drive empty-state messaging in the sidebar.
+The webview defaults to `"searching"` before any message arrives.
 
 **Webview → Extension:**
 
-| type           | fields                   | action                                        |
-| -------------- | ------------------------ | --------------------------------------------- |
-| `"open-file"`  | `{ path: string }`       | Open file in editor (workspace-restricted)    |
-| `"drill-down"` | `{ activityId: string }` | Show raw JSONL record as JSON in editor       |
-| `"show-diff"`  | `{ activityId: string }` | Open old→new edit diff in VS Code diff editor |
+| type               | fields                   | action                                        |
+| ------------------ | ------------------------ | --------------------------------------------- |
+| `"open-file"`      | `{ path: string }`       | Open file in editor (workspace-restricted)    |
+| `"drill-down"`     | `{ activityId: string }` | Show raw JSONL record as JSON in editor       |
+| `"show-diff"`      | `{ activityId: string }` | Open old→new edit diff in VS Code diff editor |
+| `"select-session"` | —                        | Open the session picker quick pick            |
 
 ---
 
 ## Configuration flow
 
-Three configuration objects flow through the system at different layers:
+Four configuration objects flow through the system at different layers:
 
-| Config              | Defined in | Set by                                                   | Consumed by                        |
-| ------------------- | ---------- | -------------------------------------------------------- | ---------------------------------- |
-| `SessionCoreConfig` | core       | Parser defaults (overridable)                            | `ClaudeCodeParserV1`               |
-| `AssemblyLimits`    | core       | Builder defaults (overridable)                           | `SessionBuilder`                   |
-| `SummaryConfig`     | view       | vscode settings → `SessionManager` → `SessionController` | `summarizeTurn()`, `exportState()` |
+| Config                                | Defined in | Set by                                                   | Consumed by                             |
+| ------------------------------------- | ---------- | -------------------------------------------------------- | --------------------------------------- |
+| `SessionCoreConfig`                   | core       | Parser defaults (overridable)                            | `ClaudeCodeParserV1`                    |
+| `AssemblyLimits`                      | core       | Builder defaults (overridable)                           | `SessionBuilder`                        |
+| `SummaryConfig`                       | view       | vscode settings → `SessionManager` → `SessionController` | `summarizeTurn()`, `exportState()`      |
+| `SessionManagerOptions.liveRecencyMs` | io         | vscode setting `knoLens.liveRecencyMs` (default: 30s)    | `SessionManager` stale-live suppression |
 
 ---
 
@@ -338,11 +358,12 @@ bash output) look it up in the source file.
 version. New log formats get new parser implementations without breaking
 existing ones. Unknown CLI versions fall back to the latest parser.
 
-**Three business logic seams** — all pure functions, all testable
+**Pure business logic seams** — all pure functions, all testable
 without I/O:
 
 1. `Parser.parse()`: JSONL line → SessionEvent[]
-2. `summarizeTurn()`: Turn + config → TurnSummary
+2. `summarizeTurn()`: Turn + config → TurnSummary (with
+   TurnDisplayCounts)
 3. `activityLabel()`: Activity → human-readable string
 
 **Single assembly path.** SessionBuilder serves both live and batch
@@ -360,6 +381,7 @@ that could diverge from the incremental path.
 | Compute something from multiple events     | core        | SessionBuilder                                   |
 | Add a new event type                       | core        | SessionEvent union + SCHEMA_VERSION bump         |
 | Add presentation logic (summaries, labels) | view        | summarizeTurn, activityLabel, registry           |
+| Add a display-ready count or metric        | view        | TurnDisplayCounts + LiveActivityCounts           |
 | Add a new filter/category                  | view        | Category registry                                |
 | Change snapshot shape                      | view        | SessionSnapshot + SUMMARY_ALGORITHM_VERSION bump |
 | Add rendering (components, CSS)            | ui          | Preact components + main.css                     |

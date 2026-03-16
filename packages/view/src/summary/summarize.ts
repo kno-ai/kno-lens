@@ -1,7 +1,14 @@
 import type { Activity, Turn } from "@kno-lens/core";
+import { BASH_DELETE_PATTERN } from "@kno-lens/core";
 import { activityLabel } from "../live/labels.js";
 import type { SummaryConfig } from "./config.js";
-import type { ItemDetailLine, SummaryItem, TurnSummary, TurnSummaryStats } from "./types.js";
+import type {
+  ItemDetailLine,
+  SummaryItem,
+  TurnDisplayCounts,
+  TurnSummary,
+  TurnSummaryStats,
+} from "./types.js";
 import { getCategoryDef } from "./registry.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -55,7 +62,7 @@ function extractResponse(turn: Turn): string | undefined {
  * compound commands (&&, ||, ;, |). Order matters — first match wins.
  * Errors take precedence (checked before these patterns).
  */
-const DELETE_PATTERN = /(?:^|[;&|]\s*)(?:rm|git\s+rm|rimraf|unlink|del|erase|Remove-Item|ri)\b/;
+const DELETE_PATTERN = BASH_DELETE_PATTERN;
 const INSTALL_PATTERN =
   /(?:^|[;&|]\s*)(?:npm\s+(?:install|i|ci|add)|yarn\s+(?:add|install)|pnpm\s+(?:add|install|i)|pip\s+install|brew\s+install|apt(?:-get)?\s+install|cargo\s+install|go\s+install)\b/;
 const TEST_PATTERN =
@@ -81,6 +88,7 @@ interface ClassifiedActivity {
   activityId: string;
   expandedDetail?: ItemDetailLine[] | undefined;
   filePath?: string | undefined;
+  activity: Activity;
 }
 
 /**
@@ -142,6 +150,7 @@ function classifyActivity(activity: Activity): ClassifiedActivity {
     activityId: activity.id,
     label: activityLabel(activity),
     expandedDetail: extractDetail(activity),
+    activity,
   };
 
   // Extract file path for file-related activities
@@ -321,6 +330,12 @@ function computeStats(classified: ClassifiedActivity[]): TurnSummaryStats {
   };
 
   for (const c of classified) {
+    // Count errors from activity status, not category — matches
+    // turn.errorCount from the builder so counts are consistent.
+    if (c.activity.status === "error") {
+      stats.errors++;
+    }
+
     switch (c.category) {
       case "file_created":
         stats.filesCreated++;
@@ -341,13 +356,10 @@ function computeStats(classified: ClassifiedActivity[]): TurnSummaryStats {
         break;
       case "bash_error":
         stats.commandsFailed++;
-        stats.errors++;
+        stats.commandsRun++;
         break;
       case "search":
         stats.searchesRun++;
-        break;
-      case "error":
-        stats.errors++;
         break;
     }
   }
@@ -420,11 +432,31 @@ export function summarizeTurn(turn: Turn, config: SummaryConfig): TurnSummary {
     });
   }
 
+  const tokens = (turn.tokenUsage.inputTokens ?? 0) + (turn.tokenUsage.outputTokens ?? 0);
+  let durationMs = turn.durationMs ?? 0;
+  if (durationMs === 0 && turn.startedAt && turn.endedAt) {
+    const start = new Date(turn.startedAt).getTime();
+    const end = new Date(turn.endedAt).getTime();
+    if (!isNaN(start) && !isNaN(end)) durationMs = end - start;
+  }
+
+  const counts: TurnDisplayCounts = {
+    edits: stats.filesCreated + stats.filesEdited,
+    deletes: stats.filesDeleted,
+    commands: stats.commandsRun,
+    errors: turn.errorCount,
+    reads: stats.filesRead,
+    searches: stats.searchesRun,
+    tokens,
+    durationMs,
+  };
+
   return {
     turnId: turn.id,
     prompt: turn.prompt,
     items,
     stats,
+    counts,
     response: extractResponse(turn),
   };
 }

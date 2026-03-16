@@ -20,6 +20,11 @@ turns retained, max steps per turn, and max tracked file paths.
 Distinct from truncation limits (which control text field sizes in
 the parser).
 
+**Connection status** — A string (`"searching"`, `"no-workspace"`,
+`"connecting"`, `"connected"`) sent from the extension to the webview
+to drive empty-state messaging. The webview defaults to `"searching"`
+before any message arrives.
+
 **Compaction** — A process where Claude Code rewrites earlier records
 in its JSONL log into a more compact form. Marked in the log by a
 `system/compact_boundary` record. The parser emits a `compaction`
@@ -29,6 +34,14 @@ event but no consumer currently acts on it.
 conversation using Claude Code's `/resume` or continuation feature.
 Detected by the parser from the first user prompt's text prefix.
 Stored as `isContinuation` on `SessionMeta`.
+
+**Display counts** — A `TurnDisplayCounts` object computed by
+`summarizeTurn()` containing pre-derived display-ready metrics for a
+completed turn (edits, deletes, commands, errors, reads, searches,
+tokens, durationMs). Stored on `TurnSummary.counts`. UI components
+read these directly — they never derive counts from raw stats. For
+live turns, `LiveActivityCounts` provides the equivalent real-time
+values.
 
 **Event** — A `SessionEvent` value emitted by the parser. The
 fundamental unit of the data pipeline. There are 12 event types
@@ -82,8 +95,9 @@ and represent the chronological sequence of what happened.
 
 **Summary** — A `TurnSummary` produced by `summarizeTurn()` for a
 completed turn. Contains classified, filtered, grouped, and truncated
-`SummaryItem` entries plus stats. Summaries are only computed on
-completed turns — never partial.
+`SummaryItem` entries, raw `TurnSummaryStats`, and pre-computed
+`TurnDisplayCounts`. Summaries are only computed on completed turns —
+never partial.
 
 **Turn** — One user prompt → assistant response cycle. A turn contains
 zero or more steps (text, thinking, activities). Turns have a status

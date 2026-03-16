@@ -30,7 +30,24 @@ export interface TurnSummaryStats {
   commandsRun: number;
   commandsFailed: number;
   searchesRun: number;
+  /** All activities with error status — matches turn.errorCount from the builder. */
   errors: number;
+}
+
+/**
+ * Pre-computed display counts for a completed turn.
+ * These are the values UI components should render directly —
+ * no further derivation needed.
+ */
+export interface TurnDisplayCounts {
+  edits: number;
+  deletes: number;
+  commands: number;
+  errors: number;
+  reads: number;
+  searches: number;
+  tokens: number;
+  durationMs: number;
 }
 
 export interface TurnSummary {
@@ -38,6 +55,8 @@ export interface TurnSummary {
   prompt: string;
   items: SummaryItem[];
   stats: TurnSummaryStats;
+  /** Pre-computed display counts — use these in UI, not raw stats. */
+  counts: TurnDisplayCounts;
   /** Last text response from the assistant, truncated for display. */
   response?: string | undefined;
 }

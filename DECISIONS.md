@@ -226,3 +226,72 @@ mocking the settings system. Plain config objects can be constructed
 in tests with object literals. This also means the same libraries work
 with different config sources (VS Code settings, CLI flags, environment
 variables, hardcoded test values) without modification.
+
+---
+
+## Display counts computed in view, not UI
+
+Every derived metric that a UI needs for display — `edits` (filesCreated
+
+- filesEdited), total tokens, duration fallback — is computed once in
+  `summarizeTurn()` and stored as `TurnDisplayCounts` on the
+  `TurnSummary`. UI components read these values directly.
+
+**Why:** KnoLens targets multiple platforms (VS Code today, desktop app
+next). If display derivations live in UI components, every new platform
+must reimplement the same calculations, creating divergence risk. When
+error counts disagreed between the session header and the timeline, it
+was because two different code paths computed "errors" differently.
+Moving all derivations to the view layer eliminated this class of bug.
+
+**The rule:** If a UI component needs a number that isn't directly on
+`SessionStats`, `TurnSummaryStats`, or `LiveActivityCounts`, the view
+layer must compute it and export it. The UI never sums, combines, or
+derives from raw stats.
+
+**What this means for new features:** To add a new display metric,
+add it to `TurnDisplayCounts` and compute it in `summarizeTurn()`. For
+live turns, add it to `LiveActivityCounts` and compute it in
+`LiveTurnModel`. Never add the derivation to a UI component.
+
+---
+
+## Error counting from activity status, not category
+
+Error counts use `activity.status === "error"` everywhere — in the
+core builder (`SessionStats.errorCount`, `turn.errorCount`), in the
+view summarizer (`TurnSummaryStats.errors`), and in the live model
+(`LiveTurnState.errorCount`).
+
+**Why:** Categories like `bash_error` are display classifications.
+A `file_edit` that fails has `status: "error"` but gets classified as
+`file_edited` for display. Counting errors by category missed non-bash
+errors, causing the session header (which uses the builder's count) to
+disagree with the timeline (which used the summary's count). Using
+`activity.status` as the single source of truth for "is this an error"
+makes all counts consistent.
+
+**What this means for new features:** When adding a new activity kind,
+you don't need to create an error variant for it. The existing
+`status === "error"` check handles it automatically.
+
+---
+
+## Stale live suppression via file recency
+
+When the extension connects to a session file, the `SessionManager`
+checks whether the file was recently modified (within `liveRecencyMs`,
+default 30s). If the file is stale, any "live" turn state from the
+initial catch-up read is suppressed until new writes arrive.
+
+**Why:** Sessions that ended abruptly (process killed, terminal closed)
+leave an unclosed turn in the JSONL. Without suppression, connecting to
+such a session shows a pulsing green "active" indicator for a session
+that hasn't been running for hours. The recency check distinguishes
+"this file has an unclosed turn because the session is genuinely
+running" from "this file has an unclosed turn because it was abandoned."
+
+**The tradeoff:** If a session pauses for longer than `liveRecencyMs`
+(e.g., user is thinking for 2 minutes), the live indicator disappears
+until new events arrive. This is acceptable — the indicator reappears
+immediately when writing resumes.

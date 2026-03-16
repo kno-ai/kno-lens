@@ -3,32 +3,44 @@
 [![CI](https://github.com/kno-ai/kno-lens/actions/workflows/ci.yml/badge.svg)](https://github.com/kno-ai/kno-lens/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Open-source AI observability — see what your AI coding tools are actually doing.
+Open-source observability for AI coding tools. See what's actually happening — every tool call, file edit, command, and error — live and after the fact.
 
-KnoLens gives you visibility into LLM-assisted coding sessions: what tools were called, what files were changed, what failed, and how each turn unfolded. Local-first, privacy-respecting, and designed to run quietly inside your editor.
+## VS Code extension
 
-**[Install the VS Code extension](https://marketplace.visualstudio.com/items?itemName=kno-ai.kno-lens)** — live session viewer for Claude Code, directly in your sidebar.
+**[Install from the marketplace](https://marketplace.visualstudio.com/items?itemName=kno-ai.kno-lens)** — no setup required.
+
+![KnoLens timeline view — session activity breakdown](packages/vscode/media/kno-lens-timeline-screenshot-vscode.png)
+
+<table>
+<tr>
+<td><img src="packages/vscode/media/kno-lens-screenshot-vscode.png" alt="KnoLens lens view — live turn-by-turn tracking" /></td>
+<td><img src="packages/vscode/media/kno-lens-heatmap-screenshot-vscode.png" alt="KnoLens heatmap view — file edits across turns" /></td>
+</tr>
+</table>
+
+Three views: **Timeline** for session review, **Lens** for live monitoring, **Heatmap** for file-level patterns. Auto-connects, read-only, zero telemetry.
 
 ## Why
 
-AI coding tools are powerful but opaque. They read your files, run commands, and make changes — but you only see the final result. KnoLens opens that black box:
+AI coding tools are powerful but opaque. They read your files, run commands, and make changes — but you only see the result. KnoLens opens that black box:
 
-- **Understand what happened** — structured turn-by-turn summaries of every tool call, file edit, and command
-- **Watch it happen live** — see running activities, elapsed time, and progress as Claude works
+- **Live tracking** — see running tools, elapsed time, and progress as Claude works
+- **Structured summaries** — turn-by-turn breakdown of every tool call, file edit, and command
+- **Timeline and heatmap** — spot patterns, churn, and scope across an entire session
 - **Search and filter** — find specific changes across turns, filter by activity type
-- **Stay in control** — all data stays on your machine, read-only, zero telemetry
+- **Privacy-first** — all data stays on your machine, read-only, zero telemetry
 
 ## Getting started
 
 1. Install the extension from the [VS Code marketplace](https://marketplace.visualstudio.com/items?itemName=kno-ai.kno-lens)
 2. Open a workspace where you use Claude Code
-3. The KnoLens sidebar appears automatically
+3. KnoLens connects to your active session automatically
 
-No configuration needed. It discovers your active session and connects.
+No configuration needed.
 
-## Built to extend
+## Architecture
 
-KnoLens is structured as a set of reusable packages, not a monolithic extension. The core parsing and visualization libraries have no VS Code dependency — they're designed to power other tools and integrations.
+KnoLens is a set of reusable packages, not a monolithic extension. The core libraries have no VS Code dependency — they're designed to power other tools and integrations.
 
 | Package                     | Description                                           |
 | --------------------------- | ----------------------------------------------------- |

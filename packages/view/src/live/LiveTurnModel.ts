@@ -1,4 +1,5 @@
 import type { SessionEvent, ActivityKind, Activity } from "@kno-lens/core";
+import { BASH_DELETE_PATTERN } from "@kno-lens/core";
 import { activityLabel } from "./labels.js";
 import type { LiveTurnState, LiveActivityCounts, CompletedLiveActivity } from "./types.js";
 
@@ -6,7 +7,7 @@ const LAST_TEXT_MAX_CHARS = 200;
 const MAX_COMPLETED_ACTIVITIES = 100;
 
 function emptyCounts(): LiveActivityCounts {
-  return { edits: 0, commands: 0, reads: 0, searches: 0, other: 0 };
+  return { edits: 0, deletes: 0, commands: 0, reads: 0, searches: 0, other: 0 };
 }
 
 function emptyState(): LiveTurnState {
@@ -104,6 +105,14 @@ export class LiveTurnModel {
         }
         this.state.completedCount++;
         this.state.activityCounts[classifyKind(event.activity.kind)]++;
+        // Track deletes: bash commands matching the delete pattern
+        if (
+          event.activity.kind === "bash" &&
+          "command" in event.activity &&
+          BASH_DELETE_PATTERN.test(event.activity.command as string)
+        ) {
+          this.state.activityCounts.deletes++;
+        }
         if (event.activity.status === "error") {
           this.state.errorCount++;
         }

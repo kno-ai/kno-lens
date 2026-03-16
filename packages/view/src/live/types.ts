@@ -3,6 +3,7 @@ import type { ActivityKind } from "@kno-lens/core";
 /** Per-category completion counts for the current turn. */
 export interface LiveActivityCounts {
   edits: number;
+  deletes: number;
   commands: number;
   reads: number;
   searches: number;

@@ -78,5 +78,7 @@ export interface SessionStats {
   filesRead: string[];
   filesWritten: string[];
   commandsRun: number;
+  /** Bash commands that match common delete patterns (rm, git rm, rimraf, etc.). */
+  filesDeleted: number;
   errorCount: number;
 }

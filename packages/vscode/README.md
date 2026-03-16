@@ -1,37 +1,39 @@
 # KnoLens
 
-See what Claude Code is actually doing — live, in your sidebar.
+**See what Claude Code is actually doing.**
 
-Claude reads your files, runs commands, and makes changes, but you only see the result. KnoLens shows you every step: what tools were called, what files were touched, what failed, and how each turn unfolded.
+Claude Code reads files, runs commands, and edits your code — but all you see is the final output. KnoLens shows you every step: what tools ran, what files were touched, what failed, and how each turn unfolded.
 
-Install it, open a workspace, and it connects automatically. No setup required.
+![KnoLens timeline view — session activity breakdown](media/kno-lens-timeline-screenshot-vscode.png)
 
-## Features
+<table>
+<tr>
+<td><img src="media/kno-lens-screenshot-vscode.png" alt="KnoLens lens view — live turn-by-turn tracking" /></td>
+<td><img src="media/kno-lens-heatmap-screenshot-vscode.png" alt="KnoLens heatmap view — file edits across turns" /></td>
+</tr>
+</table>
 
-- **Live activity tracking** — see running tools, elapsed time, and completed counts as Claude works
-- **Turn summaries** — each turn is summarized with file edits, commands, errors, and searches
-- **Auto-connect** — discovers and connects to your active Claude Code session automatically
-- **Search and filter** — find turns by content, filter by activity type (edits, commands, errors)
-- **Theme-aware** — matches your VS Code theme (dark, light, high contrast)
-- **Privacy-first** — all data stays on your machine, read-only, zero telemetry
+## Three views for different questions
+
+- **Timeline** — see the full session laid out. Edit counts, commands, errors, duration, and token usage per turn. Good for reviewing what happened and spotting patterns.
+- **Lens** — follow along as Claude works. Live tool activity, turn-by-turn summaries, elapsed time. Good for monitoring a session in progress.
+- **Heatmap** — see which files were edited across every turn. Good for spotting churn, concentration, and scope creep.
+
+All three support search and filtering by activity type.
 
 ## Getting started
 
 1. Install the extension
 2. Open a workspace where you use Claude Code
-3. The KnoLens sidebar appears and connects to your active session
+3. KnoLens connects to your active session automatically
 
-Use the **Select Session** command to switch between sessions.
+No configuration, no tokens, no accounts. Everything runs locally and read-only.
 
-## Settings
+Use **KnoLens: Select Session** to switch sessions. **KnoLens: Open Explorer** opens the timeline and heatmap.
 
-| Setting                                | Default  | Description                                  |
-| -------------------------------------- | -------- | -------------------------------------------- |
-| `knoLens.summary.defaultMinImportance` | `medium` | Minimum importance level for summary items   |
-| `knoLens.summary.groupConsecutive`     | `true`   | Group consecutive items of the same category |
-| `knoLens.summary.maxVisibleItems`      | `15`     | Maximum visible summary items per turn       |
-| `knoLens.summary.maxVisibleTurns`      | `50`     | Maximum visible turns                        |
-| `knoLens.throttleMs`                   | `100`    | Throttle interval (ms) for live updates      |
+## Privacy
+
+KnoLens reads Claude Code's local session files on your machine. It never sends data anywhere. Zero telemetry.
 
 ## License
 

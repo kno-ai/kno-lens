@@ -21,6 +21,9 @@ packages/vscode/media/*.css
 *.swp
 *.swo
 
+# Changelogs (suppressed for early versions)
+CHANGELOG.md
+
 # Internal
 .claude/
 .specs/

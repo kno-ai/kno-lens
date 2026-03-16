@@ -8,6 +8,9 @@ import { PanelManager } from "./panel-manager.js";
 
 const log = vscode.window.createOutputChannel("KnoLens", { log: true });
 
+/** How often to poll for sessions (ms). */
+const POLL_INTERVAL = 3000;
+
 // ─── Sidebar WebviewViewProvider ─────────────────────────────────────────
 
 class ViewProvider implements vscode.WebviewViewProvider {
@@ -17,7 +20,7 @@ class ViewProvider implements vscode.WebviewViewProvider {
   private connector: SessionConnector | undefined;
   private extensionUri: vscode.Uri;
   private pollTimer: ReturnType<typeof setInterval> | undefined;
-  private connecting = false;
+  private pollBusy = false;
   readonly explorer: PanelManager;
 
   constructor(extensionUri: vscode.Uri) {
@@ -39,59 +42,89 @@ class ViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = getWebviewHtml(webviewView.webview, this.extensionUri);
 
+    // Handle messages from webview
+    webviewView.webview.onDidReceiveMessage((msg) => {
+      if (msg?.type === "select-session") {
+        this.selectSession();
+      }
+    });
+
     webviewView.onDidDispose(() => {
       this.connector?.dispose();
       this.connector = undefined;
-      if (this.pollTimer) clearInterval(this.pollTimer);
-      this.pollTimer = undefined;
+      this.stopPolling();
       this.view = undefined;
     });
 
-    // Auto-connect, then poll until connected
+    // Try to connect immediately, then start the poll loop.
+    // Don't send status before autoConnect — the webview JS hasn't
+    // loaded yet and the message would be lost. The webview defaults
+    // to "searching" state, which is correct. autoConnect will send
+    // "connecting" or "no-workspace" if those apply.
     this.autoConnect();
     this.startPolling();
   }
+
+  // ─── Connection ──────────────────────────────────────────────────
 
   async connectToSession(sessionInfo: SessionInfo): Promise<void> {
     if (!this.view) return;
 
     // Tear down previous connection
     this.connector?.dispose();
+    this.connector = undefined;
+    this.explorer.clearState();
 
     log.info(`Connecting to session: ${sessionInfo.sessionId}`);
     log.info(`  File: ${sessionInfo.path}`);
 
-    this.connector = new SessionConnector(sessionInfo, this.view.webview, this.explorer);
-    await this.connector.start();
+    this.postStatus("connecting");
 
+    const connector = new SessionConnector(sessionInfo, this.view.webview, this.explorer);
+
+    try {
+      await connector.start();
+    } catch (err) {
+      // Connection failed — clean up and fall back to searching
+      connector.dispose();
+      log.error(`Connection failed for ${sessionInfo.sessionId}: ${err}`);
+      this.postStatus("searching");
+      // Leave this.connector undefined so the poll retries
+      return;
+    }
+
+    this.connector = connector;
     this.view.title = `Session — ${sessionInfo.sessionId.slice(0, 8)}…`;
 
-    // Stop polling once connected
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = undefined;
-    }
+    // Clear any new-session badge — we just connected to something
+    this.setNewSessionBadge(false);
+
+    // Ensure polling is running — it watches for new sessions while connected
+    this.startPolling();
   }
 
-  async autoConnect(): Promise<void> {
-    if (this.connecting) return;
+  // ─── Auto-connect (called once on startup and by poll loop) ────
+
+  private async autoConnect(): Promise<void> {
+    if (this.pollBusy) return;
 
     const workspace = getWorkspacePath();
     if (!workspace) {
       log.warn("No workspace folder open");
+      this.postStatus("no-workspace");
       return;
     }
 
-    this.connecting = true;
-    log.info(`Discovering sessions for: ${workspace}`);
+    this.pollBusy = true;
 
     try {
       const { all, active } = await SessionManager.discover(workspace);
-      log.info(`Found ${all.length} session(s), ${active.length} active`);
 
-      if (all.length === 0) return;
+      if (all.length === 0) {
+        this.postStatus("searching");
+        return;
+      }
 
-      // Silently connect to the most recent active session, or most recent overall
       const target = active[0] ?? all[0];
       if (target) {
         await this.connectToSession(target);
@@ -99,25 +132,68 @@ class ViewProvider implements vscode.WebviewViewProvider {
     } catch (err) {
       log.error(`Auto-connect failed: ${err}`);
     } finally {
-      this.connecting = false;
+      this.pollBusy = false;
     }
   }
 
-  /** Poll for sessions every 3s until we connect to one. */
+  // ─── Poll loop ─────────────────────────────────────────────────
+  //
+  // One timer, two behaviors:
+  //   • While disconnected: try to auto-connect to any session.
+  //   • While connected: watch for new active sessions that differ
+  //     from the current one. Badge the picker if found.
+
   private startPolling(): void {
-    this.pollTimer = setInterval(() => {
-      if (this.connector) {
-        // Already connected — stop polling
-        if (this.pollTimer) clearInterval(this.pollTimer);
-        this.pollTimer = undefined;
-        return;
-      }
-      log.info("Polling for sessions...");
-      this.autoConnect();
-    }, 3000);
+    if (this.pollTimer) return;
+    this.pollTimer = setInterval(() => this.poll(), POLL_INTERVAL);
   }
 
+  private stopPolling(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = undefined;
+    }
+  }
+
+  private async poll(): Promise<void> {
+    if (this.pollBusy) return;
+
+    if (!this.connector) {
+      // Not connected — try to find and connect to a session
+      this.autoConnect();
+      return;
+    }
+
+    // Already connected — check for new active sessions
+    const workspace = getWorkspacePath();
+    if (!workspace) return;
+
+    this.pollBusy = true;
+    try {
+      const { active } = await SessionManager.discover(workspace);
+
+      const currentId = this.connector?.sessionInfo.sessionId;
+      const newSession = active.find((s) => s.sessionId !== currentId);
+
+      // Badge the picker if a different active session exists; clear if not
+      this.setNewSessionBadge(newSession != null);
+
+      if (newSession) {
+        log.info(`New active session detected: ${newSession.sessionId}`);
+      }
+    } catch (err) {
+      log.error(`Session watch failed: ${err}`);
+    } finally {
+      this.pollBusy = false;
+    }
+  }
+
+  // ─── Session picker ────────────────────────────────────────────
+
   async selectSession(): Promise<void> {
+    // Clear badge when user opens the picker
+    this.setNewSessionBadge(false);
+
     const workspace = getWorkspacePath();
     if (!workspace) {
       vscode.window.showWarningMessage("KnoLens: No workspace folder open");
@@ -136,6 +212,16 @@ class ViewProvider implements vscode.WebviewViewProvider {
     if (picked) {
       await this.connectToSession(picked);
     }
+  }
+
+  // ─── Helpers ───────────────────────────────────────────────────
+
+  private postStatus(status: string): void {
+    this.view?.webview.postMessage({ type: "status", data: status });
+  }
+
+  private setNewSessionBadge(visible: boolean): void {
+    vscode.commands.executeCommand("setContext", "knoLens.newSessionAvailable", visible);
   }
 }
 
@@ -162,7 +248,19 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("knoLens.showLens", () => {
+      vscode.commands.executeCommand("knoLens.sessionView.focus");
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("knoLens.selectSession", () => {
+      provider.selectSession();
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("knoLens.selectSessionNew", () => {
       provider.selectSession();
     }),
   );
@@ -181,6 +279,12 @@ export function activate(context: vscode.ExtensionContext): void {
         provider.explorer.open(filePath ? { fileFilter: filePath } : undefined);
       },
     ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("knoLens.refreshExplorer", () => {
+      provider.explorer.open();
+    }),
   );
 
   context.subscriptions.push(provider.explorer);

@@ -97,6 +97,7 @@
         "src/config/pool.ts"
       ],
       "commandsRun": 12,
+      "filesDeleted": 1,
       "errorCount": 2
     }
   },

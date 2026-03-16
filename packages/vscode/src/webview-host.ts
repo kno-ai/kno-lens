@@ -11,6 +11,9 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, "webview.css"));
   const nonce = randomUUID();
 
+  // The #root content is a CSS-only loading state that displays
+  // immediately while the webview JS loads. Once the Preact app mounts,
+  // it replaces this content entirely.
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,7 +29,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   <title>KnoLens</title>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"><div class="empty-state"><div class="empty-state__title">Waiting for session</div></div></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

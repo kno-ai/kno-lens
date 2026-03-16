@@ -254,6 +254,26 @@ describe("SessionBuilder", () => {
     expect(session.turns[0]!.errorCount).toBe(1);
   });
 
+  it("counts filesDeleted for bash commands matching delete patterns", () => {
+    const parser = new ClaudeCodeParserV1();
+    const events = parseAll(
+      parser,
+      userPrompt("Clean up"),
+      assistantToolUse("Bash", "toolu_d1", { command: "rm -rf dist" }),
+      toolResult("toolu_d1", ""),
+      assistantToolUse("Bash", "toolu_d2", { command: "git rm old-file.ts" }),
+      toolResult("toolu_d2", "rm 'old-file.ts'"),
+      assistantToolUse("Bash", "toolu_d3", { command: "npm test" }),
+      toolResult("toolu_d3", "Tests passed"),
+      assistantEndTurn("Cleaned up."),
+    );
+
+    const session = SessionBuilder.from(events);
+
+    expect(session.stats.filesDeleted).toBe(2); // rm and git rm, not npm test
+    expect(session.stats.commandsRun).toBe(3); // all three are commands
+  });
+
   it("sets endedAt on session meta", () => {
     const parser = new ClaudeCodeParserV1();
     const events = parseAll(

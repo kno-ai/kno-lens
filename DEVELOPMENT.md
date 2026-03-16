@@ -126,8 +126,7 @@ You don't manually bump versions, write changelogs, or create tags.
    - `chore:`, `docs:`, `test:` → no release
 
 2. release-please automatically creates/updates a **Release PR** on
-   main that bumps `packages/vscode/package.json` and updates
-   `packages/vscode/CHANGELOG.md`
+   main that bumps `packages/vscode/package.json`
 
 3. When you're ready to publish, **merge the Release PR**
 

@@ -42,10 +42,21 @@
     },
     "commands": [
       {
+        "command": "knoLens.showLens",
+        "title": "Show Lens",
+        "category": "KnoLens"
+      },
+      {
         "command": "knoLens.selectSession",
         "title": "Select Session",
         "category": "KnoLens",
         "icon": "$(list-selection)"
+      },
+      {
+        "command": "knoLens.selectSessionNew",
+        "title": "Select Session (new session available)",
+        "category": "KnoLens",
+        "icon": "$(bell-dot)"
       },
       {
         "command": "knoLens.openExplorer",
@@ -55,7 +66,7 @@
       },
       {
         "command": "knoLens.openExplorerForFile",
-        "title": "Show file history in KnoLens Explorer",
+        "title": "Show File History in Explorer",
         "category": "KnoLens"
       },
       {
@@ -65,16 +76,22 @@
         "icon": "$(refresh)"
       }
     ],
-    "keybindings": [
-      {
-        "command": "knoLens.openExplorer"
-      }
-    ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "knoLens.selectSessionNew",
+          "when": "false"
+        }
+      ],
       "view/title": [
         {
           "command": "knoLens.selectSession",
-          "when": "view == knoLens.sessionView",
+          "when": "view == knoLens.sessionView && !knoLens.newSessionAvailable",
+          "group": "navigation"
+        },
+        {
+          "command": "knoLens.selectSessionNew",
+          "when": "view == knoLens.sessionView && knoLens.newSessionAvailable",
           "group": "navigation"
         },
         {
@@ -128,6 +145,11 @@
           "type": "number",
           "default": 100,
           "description": "Throttle interval (ms) for live updates"
+        },
+        "knoLens.liveRecencyMs": {
+          "type": "number",
+          "default": 30000,
+          "description": "How recently (ms) a session file must have been modified for its live indicator to be shown after initial load. Prevents stale sessions from appearing active."
         }
       }
     }

@@ -25,6 +25,13 @@ export function formatTokens(count: number): string {
   return `${(count / 1_000_000).toFixed(1)}M tokens`;
 }
 
+/** Compact format for table cells where the column header already says "Tokens". */
+export function formatTokensCompact(count: number): string {
+  if (count < 1_000) return `${count}`;
+  if (count < 1_000_000) return `${(count / 1_000).toFixed(1)}k`;
+  return `${(count / 1_000_000).toFixed(1)}M`;
+}
+
 export function categoryIcon(category: string): string {
   return getCategoryDef(category).icon;
 }

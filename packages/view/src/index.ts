@@ -19,6 +19,7 @@ export { DEFAULT_SUMMARY_CONFIG } from "./summary/config.js";
 export type { SummaryConfig, ImportanceLevel } from "./summary/config.js";
 export type {
   TurnSummary,
+  TurnDisplayCounts,
   SummaryItem,
   ItemDetailLine,
   TurnSummaryStats,

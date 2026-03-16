@@ -103,6 +103,20 @@ These rules enforce the product principles above in code.
   requires heavy computation, move it off the main thread or make it
   lazy (compute on demand, not on every event).
 
+### Display logic ownership
+
+- **Compute display values in view, render in ui.** Every derived
+  metric the UI displays (edits = filesCreated + filesEdited, total
+  tokens, etc.) must be computed in the view package's
+  `summarizeTurn()` and exported via `TurnDisplayCounts`. UI
+  components read pre-computed values — they never sum, combine, or
+  derive from raw stats. This ensures all platforms (VS Code, desktop,
+  web) show identical numbers from the same data.
+- **Count errors from status, not category.** Error counts come from
+  `activity.status === "error"`, not from display categories like
+  `bash_error`. This ensures session-level, turn-level, and
+  summary-level error counts always agree.
+
 ### Data handling
 
 - **Truncate at the source.** New text fields on events or activities

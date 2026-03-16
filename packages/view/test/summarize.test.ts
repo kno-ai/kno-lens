@@ -394,7 +394,7 @@ describe("summarizeTurn", () => {
     expect(summary.stats.filesCreated).toBe(1);
     expect(summary.stats.filesEdited).toBe(1);
     expect(summary.stats.filesRead).toBe(2);
-    expect(summary.stats.commandsRun).toBe(1);
+    expect(summary.stats.commandsRun).toBe(2); // includes the failed one
     expect(summary.stats.commandsFailed).toBe(1);
     expect(summary.stats.searchesRun).toBe(1);
     expect(summary.stats.errors).toBe(1);

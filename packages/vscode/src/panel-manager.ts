@@ -54,10 +54,17 @@ export class PanelManager implements vscode.Disposable {
 
     this.panel.webview.html = this.getHtml();
 
-    // Wire incoming messages from Explorer webview
+    // Wire incoming messages from Explorer webview.
+    // The webview sends a "ready" message once its event listener is attached,
+    // which triggers initial state delivery.
+    const pendingContext = context;
     this.panelDisposables.push(
       this.panel.webview.onDidReceiveMessage((msg) => {
         if (!msg || typeof msg.type !== "string") return;
+        if (msg.type === "ready") {
+          this.sendInitialState(pendingContext);
+          return;
+        }
         this.messageHandler?.(msg);
       }),
     );
@@ -71,19 +78,13 @@ export class PanelManager implements vscode.Disposable {
       null,
       this.panelDisposables,
     );
+  }
 
-    // Send initial state + context once webview is ready
-    if (this.lastState || context) {
-      setTimeout(() => {
-        if (!this.panel) return;
-        if (this.lastState?.snapshot) {
-          this.panel.webview.postMessage({ type: "snapshot", data: this.lastState.snapshot });
-          this.panel.webview.postMessage({ type: "live", data: this.lastState.live });
-        }
-        if (context) {
-          this.panel.webview.postMessage({ type: "explorer-context", data: context });
-        }
-      }, 100);
+  /** Clear cached state and notify the webview (called when switching sessions). */
+  clearState(): void {
+    this.lastState = undefined;
+    if (this.panel) {
+      this.panel.webview.postMessage({ type: "clear" });
     }
   }
 
@@ -106,6 +107,18 @@ export class PanelManager implements vscode.Disposable {
     this.panel?.dispose();
     for (const d of this.panelDisposables) d.dispose();
     this.panelDisposables = [];
+  }
+
+  /** Send cached state to the Explorer webview after it signals ready. */
+  private sendInitialState(context?: ExplorerContext): void {
+    if (!this.panel) return;
+    if (this.lastState?.snapshot) {
+      this.panel.webview.postMessage({ type: "snapshot", data: this.lastState.snapshot });
+      this.panel.webview.postMessage({ type: "live", data: this.lastState.live });
+    }
+    if (context) {
+      this.panel.webview.postMessage({ type: "explorer-context", data: context });
+    }
   }
 
   private getHtml(): string {
