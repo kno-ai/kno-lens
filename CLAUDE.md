@@ -26,4 +26,9 @@ must conform to both.
 - Keep changes minimal and focused. Don't refactor surrounding code,
   add speculative features, or improve things that weren't asked for.
 - Use Conventional Commits for commit messages: `feat:`, `fix:`,
-  `chore:`, `docs:`, `test:`. These drive automated releases.
+  `chore:`, `docs:`, `test:`. These drive automated releases via
+  release-please — `feat:` triggers a minor version bump, `fix:`
+  triggers a patch bump, and `chore:`/`docs:`/`test:` produce no
+  release. Choose the prefix deliberately: if a commit includes
+  user-facing features, it must use `feat:` or it won't appear in
+  the changelog or trigger a release.
