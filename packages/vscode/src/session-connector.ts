@@ -37,7 +37,7 @@ export class SessionConnector implements vscode.Disposable {
     });
 
     this.manager.on("error", (err) => {
-      console.error("[KnoLens] Session error:", err.message);
+      console.error("[kno lens] Session error:", err.message);
     });
 
     // Webview → Extension
@@ -203,7 +203,7 @@ export class SessionConnector implements vscode.Disposable {
     if (!workspaceFolders) return;
     const inWorkspace = workspaceFolders.some((folder) => filePath.startsWith(folder.uri.fsPath));
     if (!inWorkspace) {
-      console.warn(`[KnoLens] Blocked open-file outside workspace: ${filePath}`);
+      console.warn(`[kno lens] Blocked open-file outside workspace: ${filePath}`);
       return;
     }
 

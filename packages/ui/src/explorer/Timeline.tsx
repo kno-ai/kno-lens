@@ -281,9 +281,6 @@ export function Timeline({
     return <span class="timeline__sort-arrow">{sortDir === "asc" ? " ▲" : " ▼"}</span>;
   };
 
-  // Check if deletes exist anywhere in the session
-  const hasAnyDeletes = allRows.some((r) => r.counts.deletes > 0);
-
   // Build CSS grid-template-columns once from current widths.
   // Fixed widths are required because each row is a separate CSS grid
   // — max-content would resolve independently per row, misaligning columns.
@@ -293,7 +290,7 @@ export function Timeline({
     "64px", // When: "15m ago"
     promptWidth != null ? `${promptWidth}px` : "1fr", // Prompt
     "52px", // Edits
-    ...(hasAnyDeletes ? ["56px"] : []), // Deletes
+    "56px", // Deletes
     "52px", // Cmds
     "52px", // Errors
     "64px", // Time: "8m 32s"
@@ -359,14 +356,12 @@ export function Timeline({
           >
             Edits{sortArrow("edits")}
           </div>
-          {hasAnyDeletes && (
-            <div
-              class="timeline__col timeline__col--cell timeline__col--sortable"
-              onClick={() => handleSort("deletes")}
-            >
-              Deletes{sortArrow("deletes")}
-            </div>
-          )}
+          <div
+            class="timeline__col timeline__col--cell timeline__col--sortable"
+            onClick={() => handleSort("deletes")}
+          >
+            Deletes{sortArrow("deletes")}
+          </div>
           <div
             class="timeline__col timeline__col--cell timeline__col--sortable"
             onClick={() => handleSort("commands")}
@@ -434,9 +429,7 @@ export function Timeline({
                   <div class="timeline__col-resize-border" onMouseDown={handlePromptResize} />
                 </div>
                 <IntensityCell count={counts.edits} max={maxCounts.maxEdits} color="teal" />
-                {hasAnyDeletes && (
-                  <IntensityCell count={counts.deletes} max={maxCounts.maxDeletes} color="red" />
-                )}
+                <IntensityCell count={counts.deletes} max={maxCounts.maxDeletes} color="red" />
                 <IntensityCell count={counts.commands} max={maxCounts.maxCommands} color="blue" />
                 <IntensityCell count={counts.errors} max={maxCounts.maxErrors} color="orange" />
                 <div class="timeline__col timeline__col--duration">

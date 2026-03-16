@@ -7,9 +7,16 @@ interface ExplorerHeaderProps {
   mode: ExplorerMode;
   onModeChange: (mode: ExplorerMode) => void;
   onFindActive?: (() => void) | undefined;
+  onSelectSession?: (() => void) | undefined;
 }
 
-export function ExplorerHeader({ session, mode, onModeChange, onFindActive }: ExplorerHeaderProps) {
+export function ExplorerHeader({
+  session,
+  mode,
+  onModeChange,
+  onFindActive,
+  onSelectSession,
+}: ExplorerHeaderProps) {
   const { meta } = session;
   const name = meta.slug ?? (meta.id.length > 12 ? meta.id.slice(0, 8) + "\u2026" : meta.id);
 
@@ -39,6 +46,15 @@ export function ExplorerHeader({ session, mode, onModeChange, onFindActive }: Ex
           >
             Heatmap
           </button>
+          {onSelectSession && (
+            <button
+              class="explorer-header__session-btn"
+              onClick={onSelectSession}
+              title="Switch session"
+            >
+              ☰
+            </button>
+          )}
         </div>
       </div>
       <SessionMeta session={session} class="explorer-header__meta" />

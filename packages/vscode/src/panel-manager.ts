@@ -43,7 +43,7 @@ export class PanelManager implements vscode.Disposable {
 
     this.panel = vscode.window.createWebviewPanel(
       "knoLens.explorer",
-      "KnoLens Explorer",
+      "kno lens explorer",
       vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -63,6 +63,10 @@ export class PanelManager implements vscode.Disposable {
         if (!msg || typeof msg.type !== "string") return;
         if (msg.type === "ready") {
           this.sendInitialState(pendingContext);
+          return;
+        }
+        if (msg.type === "select-session") {
+          vscode.commands.executeCommand("knoLens.selectSession");
           return;
         }
         this.messageHandler?.(msg);
@@ -140,7 +144,7 @@ export class PanelManager implements vscode.Disposable {
     font-src ${webview.cspSource};
   ">
   <link rel="stylesheet" href="${styleUri}">
-  <title>KnoLens Explorer</title>
+  <title>kno lens explorer</title>
 </head>
 <body>
   <div id="root"></div>

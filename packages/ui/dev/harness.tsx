@@ -5,7 +5,6 @@ import { render } from "preact";
 import { useState, useEffect, useRef } from "preact/hooks";
 import { LensApp } from "../src/lens/LensApp.js";
 import { ExplorerApp } from "../src/explorer/ExplorerApp.js";
-import { DEFAULT_SUMMARY_CONFIG } from "@kno-lens/view";
 import type { SessionSnapshot, LiveTurnState } from "@kno-lens/view";
 
 // Injected by dev/server.ts when running in live mode. Undefined in fixture mode.
@@ -253,7 +252,6 @@ function Harness() {
           <LensApp
             snapshot={snapshot}
             live={live}
-            config={DEFAULT_SUMMARY_CONFIG}
             onDrillDown={(id) => console.log("drill-down:", id)}
             onOpenFile={(path) => console.log("open-file:", path)}
             onShowDiff={(id) => console.log("show-diff:", id)}
@@ -267,6 +265,7 @@ function Harness() {
             onOpenFile={(path) => console.log("open-file:", path)}
             onShowDiff={(id) => console.log("show-diff:", id)}
             onDrillDown={(id) => console.log("drill-down:", id)}
+            onSelectSession={() => console.log("select-session")}
           />
         </div>
       )}

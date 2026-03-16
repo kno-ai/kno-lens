@@ -62,13 +62,16 @@ function EmptyState({
         <div class="empty-state">
           <div class="empty-state__title">Waiting for session</div>
           <div class="empty-state__hint">
-            Start Claude Code in this workspace — KnoLens will connect automatically.
+            Start Claude Code in this workspace — kno lens will connect automatically.
           </div>
           {onSelectSession && (
             <button class="empty-state__action" onClick={onSelectSession}>
               Select Session
             </button>
           )}
+          <div class="empty-state__shortcut">
+            or run <kbd>kno lens: Select Session</kbd> from the command palette
+          </div>
         </div>
       );
     case "connecting":
@@ -84,13 +87,16 @@ function EmptyState({
         <div class="empty-state">
           <div class="empty-state__title">Waiting for session</div>
           <div class="empty-state__hint">
-            Start Claude Code in this workspace — KnoLens will connect automatically.
+            Start Claude Code in this workspace — kno lens will connect automatically.
           </div>
           {onSelectSession && (
             <button class="empty-state__action" onClick={onSelectSession}>
               Select Session
             </button>
           )}
+          <div class="empty-state__shortcut">
+            or run <kbd>kno lens: Select Session</kbd> from the command palette
+          </div>
         </div>
       );
   }

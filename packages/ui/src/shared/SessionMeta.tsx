@@ -20,26 +20,18 @@ export function SessionMeta({ session, class: cls }: SessionMetaProps) {
       <span>
         {stats.totalTurns} turn{stats.totalTurns === 1 ? "" : "s"}
       </span>
-      {stats.filesWritten.length > 0 && (
-        <span>
-          {stats.filesWritten.length} edit{stats.filesWritten.length === 1 ? "" : "s"}
-        </span>
-      )}
-      {stats.filesDeleted > 0 && (
-        <span>
-          {stats.filesDeleted} delete{stats.filesDeleted === 1 ? "" : "s"}
-        </span>
-      )}
-      {stats.commandsRun > 0 && (
-        <span>
-          {stats.commandsRun} command{stats.commandsRun === 1 ? "" : "s"}
-        </span>
-      )}
-      {stats.errorCount > 0 && (
-        <span>
-          {stats.errorCount} error{stats.errorCount === 1 ? "" : "s"}
-        </span>
-      )}
+      <span>
+        {stats.filesWritten.length} edit{stats.filesWritten.length === 1 ? "" : "s"}
+      </span>
+      <span>
+        {stats.filesDeleted} delete{stats.filesDeleted === 1 ? "" : "s"}
+      </span>
+      <span>
+        {stats.commandsRun} command{stats.commandsRun === 1 ? "" : "s"}
+      </span>
+      <span>
+        {stats.errorCount} error{stats.errorCount === 1 ? "" : "s"}
+      </span>
       {stats.activeDurationMs > 0 && <span>{formatDuration(stats.activeDurationMs)}</span>}
       {totalTokens > 0 && <span>{formatTokens(totalTokens)}</span>}
     </div>

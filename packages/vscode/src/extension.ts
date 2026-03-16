@@ -5,8 +5,9 @@ import { getWebviewHtml } from "./webview-host.js";
 import { SessionConnector } from "./session-connector.js";
 import { pickSession } from "./session-picker.js";
 import { PanelManager } from "./panel-manager.js";
+import { getMaxSessions } from "./settings.js";
 
-const log = vscode.window.createOutputChannel("KnoLens", { log: true });
+const log = vscode.window.createOutputChannel("kno lens", { log: true });
 
 /** How often to poll for sessions (ms). */
 const POLL_INTERVAL = 3000;
@@ -21,11 +22,19 @@ class ViewProvider implements vscode.WebviewViewProvider {
   private extensionUri: vscode.Uri;
   private pollTimer: ReturnType<typeof setInterval> | undefined;
   private pollBusy = false;
+  /** Set while the session picker QuickPick is open to prevent poll interference. */
+  private picking = false;
+  /** Resolves when the sidebar webview has been created by VS Code. */
+  private viewReady: Promise<void>;
+  private resolveViewReady!: () => void;
   readonly explorer: PanelManager;
 
   constructor(extensionUri: vscode.Uri) {
     this.extensionUri = extensionUri;
     this.explorer = new PanelManager(extensionUri);
+    this.viewReady = new Promise((resolve) => {
+      this.resolveViewReady = resolve;
+    });
   }
 
   resolveWebviewView(
@@ -34,6 +43,7 @@ class ViewProvider implements vscode.WebviewViewProvider {
     _token: vscode.CancellationToken,
   ): void {
     this.view = webviewView;
+    this.resolveViewReady();
 
     webviewView.webview.options = {
       enableScripts: true,
@@ -54,6 +64,11 @@ class ViewProvider implements vscode.WebviewViewProvider {
       this.connector = undefined;
       this.stopPolling();
       this.view = undefined;
+      // Reset the promise so future connectToSession calls can
+      // wait for the sidebar to be re-created.
+      this.viewReady = new Promise((resolve) => {
+        this.resolveViewReady = resolve;
+      });
     });
 
     // Try to connect immediately, then start the poll loop.
@@ -68,7 +83,14 @@ class ViewProvider implements vscode.WebviewViewProvider {
   // ─── Connection ──────────────────────────────────────────────────
 
   async connectToSession(sessionInfo: SessionInfo): Promise<void> {
-    if (!this.view) return;
+    // Ensure the sidebar webview exists. If the user triggered session
+    // selection from Explorer or the command palette before the sidebar
+    // was ever visible, focus it so VS Code calls resolveWebviewView.
+    if (!this.view) {
+      vscode.commands.executeCommand("knoLens.sessionView.focus");
+      await this.viewReady;
+    }
+    if (!this.view) return; // Still no view (e.g., disposed immediately)
 
     // Tear down previous connection
     this.connector?.dispose();
@@ -106,7 +128,7 @@ class ViewProvider implements vscode.WebviewViewProvider {
   // ─── Auto-connect (called once on startup and by poll loop) ────
 
   private async autoConnect(): Promise<void> {
-    if (this.pollBusy) return;
+    if (this.pollBusy || this.picking) return;
 
     const workspace = getWorkspacePath();
     if (!workspace) {
@@ -118,14 +140,21 @@ class ViewProvider implements vscode.WebviewViewProvider {
     this.pollBusy = true;
 
     try {
-      const { all, active } = await SessionManager.discover(workspace);
+      const { all, active } = await SessionManager.discover(workspace, {
+        maxSessions: getMaxSessions(),
+      });
 
       if (all.length === 0) {
         this.postStatus("searching");
         return;
       }
 
-      const target = active[0] ?? all[0];
+      // Prefer active exact match, then any active, then exact, then any
+      const target =
+        active.find((s) => !s.match || s.match === "exact") ??
+        active[0] ??
+        all.find((s) => !s.match || s.match === "exact") ??
+        all[0];
       if (target) {
         await this.connectToSession(target);
       }
@@ -156,7 +185,7 @@ class ViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async poll(): Promise<void> {
-    if (this.pollBusy) return;
+    if (this.pollBusy || this.picking) return;
 
     if (!this.connector) {
       // Not connected — try to find and connect to a session
@@ -170,7 +199,9 @@ class ViewProvider implements vscode.WebviewViewProvider {
 
     this.pollBusy = true;
     try {
-      const { active } = await SessionManager.discover(workspace);
+      const { active } = await SessionManager.discover(workspace, {
+        maxSessions: getMaxSessions(),
+      });
 
       const currentId = this.connector?.sessionInfo.sessionId;
       const newSession = active.find((s) => s.sessionId !== currentId);
@@ -196,21 +227,28 @@ class ViewProvider implements vscode.WebviewViewProvider {
 
     const workspace = getWorkspacePath();
     if (!workspace) {
-      vscode.window.showWarningMessage("KnoLens: No workspace folder open");
+      vscode.window.showWarningMessage("kno lens: No workspace folder open");
       return;
     }
 
-    const { all, active } = await SessionManager.discover(workspace);
-    if (all.length === 0) {
-      vscode.window.showInformationMessage(
-        "KnoLens: No Claude Code sessions found for this workspace",
-      );
-      return;
-    }
+    // Pause polling while the picker is open to prevent auto-connect
+    // from racing with the user's selection.
+    this.picking = true;
+    try {
+      const { all, active } = await SessionManager.discover(workspace, {
+        maxSessions: getMaxSessions(),
+      });
+      if (all.length === 0) {
+        vscode.window.showInformationMessage("kno lens: No Claude Code sessions found");
+        return;
+      }
 
-    const picked = await pickSession(active, all);
-    if (picked) {
-      await this.connectToSession(picked);
+      const picked = await pickSession(active, all);
+      if (picked) {
+        await this.connectToSession(picked);
+      }
+    } finally {
+      this.picking = false;
     }
   }
 
@@ -234,7 +272,7 @@ function getWorkspacePath(): string | undefined {
 // ─── Activation ──────────────────────────────────────────────────────────
 
 export function activate(context: vscode.ExtensionContext): void {
-  log.info("KnoLens activating");
+  log.info("kno lens activating");
   log.info(
     `Workspace folders: ${JSON.stringify(vscode.workspace.workspaceFolders?.map((f) => f.uri.toString()))}`,
   );
@@ -289,9 +327,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(provider.explorer);
 
-  log.info("KnoLens activated");
+  log.info("kno lens activated");
 }
 
 export function deactivate(): void {
-  log.info("KnoLens deactivating");
+  log.info("kno lens deactivating");
 }

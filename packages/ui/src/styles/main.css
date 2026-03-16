@@ -234,6 +234,20 @@ body {
   background: var(--vscode-button-hoverBackground);
 }
 
+.empty-state__shortcut {
+  margin-top: 8px;
+  font-size: 0.8em;
+  opacity: 0.6;
+}
+
+.empty-state__shortcut kbd {
+  font-family: inherit;
+  font-size: inherit;
+  background: var(--vscode-textSeparator-foreground);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+
 /* ─── Error boundary ─────────────────────────────────────────── */
 
 .error-boundary {

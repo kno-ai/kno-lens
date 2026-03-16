@@ -51,7 +51,7 @@ const MODES: Record<HeatmapMode, ModeConfig> = {
     label: "Reads",
     activityKinds: new Set(["file_read"]),
     summaryCategories: new Set(["file_read"]),
-    color: "100, 180, 255",
+    color: "100, 160, 220",
     noun: "read",
     emptyText: "No file reads in this session",
   },
@@ -284,6 +284,7 @@ export function Heatmap({ snapshot, fileFilter, onNavigateToTurn, onOpenFile }: 
                           .join(" ")}
                         style={{
                           background: alpha > 0 ? `rgba(${rgb}, ${alpha})` : undefined,
+                          ...(alpha > 0 ? { color: "#0d1520", opacity: 1 } : {}),
                         }}
                         onClick={count > 0 ? () => handleCellClick(turnId) : undefined}
                         onMouseEnter={(e) => {
@@ -303,7 +304,9 @@ export function Heatmap({ snapshot, fileFilter, onNavigateToTurn, onOpenFile }: 
                           setHoveredRow(null);
                           setTooltip(null);
                         }}
-                      />
+                      >
+                        {count > 0 ? count : null}
+                      </div>
                     );
                   })}
                 </Fragment>

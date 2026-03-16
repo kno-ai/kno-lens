@@ -20,6 +20,7 @@ export interface ExplorerAppProps {
   onOpenFile?: ((path: string) => void) | undefined;
   onShowDiff?: ((activityId: string) => void) | undefined;
   onDrillDown?: ((activityId: string) => void) | undefined;
+  onSelectSession?: (() => void) | undefined;
 }
 
 export function ExplorerApp({
@@ -29,6 +30,7 @@ export function ExplorerApp({
   onOpenFile,
   onShowDiff,
   onDrillDown,
+  onSelectSession,
 }: ExplorerAppProps) {
   const [mode, setMode] = useState<ExplorerMode>(() => {
     if (context?.fileFilter) return "heatmap";
@@ -91,7 +93,20 @@ export function ExplorerApp({
   if (!snapshot) {
     return (
       <div class="explorer">
-        <div class="explorer__empty">Waiting for session — connect in the KnoLens sidebar.</div>
+        <div class="explorer__empty">
+          <div class="empty-state__title">Waiting for session</div>
+          <div class="empty-state__hint">
+            Start Claude Code in this workspace — kno lens will connect automatically.
+          </div>
+          {onSelectSession && (
+            <button class="empty-state__action" onClick={onSelectSession}>
+              Select Session
+            </button>
+          )}
+          <div class="empty-state__shortcut">
+            or run <kbd>kno lens: Select Session</kbd> from the command palette
+          </div>
+        </div>
       </div>
     );
   }
@@ -103,6 +118,7 @@ export function ExplorerApp({
         mode={mode}
         onModeChange={setMode}
         onFindActive={liveTurnId != null ? handleFindActive : undefined}
+        onSelectSession={onSelectSession}
       />
       <div class="explorer__content">
         {mode === "timeline" && (
@@ -214,6 +230,10 @@ export function ExplorerWebviewApp() {
     (activityId: string) => vscode?.postMessage({ type: "drill-down", activityId }),
     [vscode],
   );
+  const onSelectSession = useCallback(
+    () => vscode?.postMessage({ type: "select-session" }),
+    [vscode],
+  );
 
   return (
     <ExplorerApp
@@ -223,6 +243,7 @@ export function ExplorerWebviewApp() {
       onOpenFile={onOpenFile}
       onShowDiff={onShowDiff}
       onDrillDown={onDrillDown}
+      onSelectSession={onSelectSession}
     />
   );
 }
